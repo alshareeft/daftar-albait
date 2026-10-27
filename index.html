@@ -1,0 +1,1244 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>دفتر البيت</title>
+<meta name="theme-color" content="#1f5c4d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="دفتر البيت">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one-column phone app — date header, calendar card, agenda; quick-entry dock pinned to the bottom; tabs as a segmented bar under the header */
+:root{
+  --bg:#f2f3ee; --surface:#fdfdfb; --sunken:#e9ebe4; --ink:#1c231f; --muted:#667068; --line:#dcdfd6;
+  --accent:#1f5c4d; --accent-ink:#ffffff; --accent-soft:#dbe9e3; --danger:#b42318; --urgent:#c2410c;
+  --cal-bg:#e2ebe6; --cal-line:#cfdcd5; --cal-cell:#f8fbf9;
+  --f-display:"IBM Plex Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif;
+  --f-body:"IBM Plex Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131714; --surface:#1b211d; --sunken:#232a25; --ink:#e7ebe5; --muted:#9aa49c; --line:#2d3530;
+  --accent:#6dbb9f; --accent-ink:#0f1a15; --accent-soft:#22362f; --danger:#f2786d; --urgent:#fb923c;
+  --cal-bg:#172b22; --cal-line:#264238; --cal-cell:#223a2f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131714; --surface:#1b211d; --sunken:#232a25; --ink:#e7ebe5; --muted:#9aa49c; --line:#2d3530;
+  --accent:#6dbb9f; --accent-ink:#0f1a15; --accent-soft:#22362f; --danger:#f2786d; --urgent:#fb923c;
+  --cal-bg:#172b22; --cal-line:#264238; --cal-cell:#223a2f; color-scheme:dark}
+*{box-sizing:border-box}
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+html,body{height:100%}
+html{font-size:14.5px}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1rem;line-height:1.5;direction:rtl;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:10px 170px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--f-display);font-weight:700;font-size:1.65rem;line-height:1.1;margin:0}
+.dates{color:var(--muted);font-size:.86rem;font-variant-numeric:tabular-nums}
+.dates b{color:var(--ink);font-weight:600}
+.sync{font-size:.75rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.themebtn{width:32px;height:32px;color:var(--ink)}
+header.top{flex-wrap:nowrap}
+header.top .dates{flex:1;min-width:0}
+.sync.on span{display:none}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.sync.on i{background:#22a06b}
+.sync.local i{background:var(--urgent)}
+
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);margin-top:12px;padding-block:8px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+nav.tabs button{border:0;background:var(--sunken);border-radius:10px;padding:9px 4px;font-size:.88rem;font-weight:500;position:relative;min-width:0}
+nav.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.badge{position:absolute;top:-8px;left:-3px;box-shadow:0 0 0 2px var(--bg);min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--urgent);color:#fff;font-size:.72rem;line-height:20px;font-variant-numeric:tabular-nums}
+
+section.view{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+/* home day list: a notch smaller and tighter */
+#dayList .grp-h{font-size:.9rem;padding-block:8px}
+#dayList .grp-h .gcount{font-size:.75rem;line-height:20px}
+#dayList .item{padding-block:8px}
+#dayList .item .t{font-size:.9rem}
+#dayList .meta{font-size:.72rem}
+#dayList .chk{width:23px;height:23px;border-radius:7px;font-size:.8rem}
+/* calendar = navigation: tinted green panel with light tiles; day list = content: plain neutral card */
+.calcard{background:var(--cal-bg);border-color:var(--cal-line)}
+.calcard .day{background:var(--cal-cell)}
+.calcard .iconbtn,.calcard .ghost{background:var(--cal-cell);border-color:var(--cal-line)}
+h2{font-size:1.05rem;margin:0;font-weight:600}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.spacer{flex:1}
+.muted{color:var(--muted)}
+.small{font-size:.82rem}
+
+/* calendar */
+.cal-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.cal-head h2{flex:1;font-family:var(--f-display);font-weight:600;font-size:1.15rem}
+/* keep the home page scrollable after the calendar shrinks, and stop the browser re-anchoring the scroll (it would undo the shrink) */
+/* home is one screen: calendar + list header stay put, only the item list scrolls and stops at its last item */
+body.is-home .wrap{padding-block-end:0}
+#view-home{display:flex;flex-direction:column;min-height:0}
+#view-home .calcard{flex:none}
+.daycard{flex:1;min-height:0;display:flex;flex-direction:column;padding-bottom:4px}
+#dayList{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+/* calendar stays pinned under the tabs; only the day list moves */
+
+.iconbtn svg{display:block}
+/* day list grouped by category */
+#dayList{display:flex;flex-direction:column;gap:6px}
+.grp{border-top:1px solid var(--line)}
+.grp:first-child{border-top:0}
+.grp-h{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;padding:10px 2px;text-align:right;font-weight:600}
+.grp-h .sw{width:10px;height:10px;border-radius:3px;flex:none}
+.grp-h .gname{flex:1;min-width:0}
+.grp-h .gcount{font-size:.8rem;color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums;background:var(--sunken);border-radius:999px;padding:0 9px;line-height:22px}
+.grp-h .chev{color:var(--muted);flex:none}
+.closed .grp-h .chev{transform:rotate(90deg)}
+.grp-top{display:flex;align-items:center;gap:6px}
+.grp-top .grp-h{flex:1;min-width:0}
+.iconbtn.sm{width:34px;height:34px;border-radius:9px;flex:none;color:var(--muted)}
+/* full-screen in-store list */
+.focus{position:fixed;inset:0;z-index:35;background:var(--bg);display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top,0px)) 16px calc(10px + env(safe-area-inset-bottom,0px))}
+.focus-h{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.focus-h .sw{width:12px;height:12px;border-radius:3px}
+.focus-h h2{font-size:1.3rem}
+.focus-h .gcount{font-size:.85rem;color:var(--muted);background:var(--sunken);border-radius:999px;padding:0 10px;line-height:24px}
+.focus-list{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;max-width:760px;width:100%;margin:0 auto}
+.focus-list .item{padding-block:14px}
+.focus-list .t{font-size:1.25rem}
+.focus-list .chk{width:32px;height:32px;border-radius:9px;font-size:1.1rem}
+body.is-focus{overflow:hidden}
+.card > .grp-h{padding-block:2px;font-size:1.05rem}
+.grp .list{padding-inline-start:18px}
+.grp .list .item:first-child{border-top:1px solid var(--line)}
+/* shopping trip chip */
+.trip{display:flex;align-items:center;gap:8px;width:100%;margin-top:8px;border:1px dashed var(--line);background:var(--bg);border-radius:10px;padding:8px 10px;font-size:.88rem;text-align:right}
+.trip span:first-of-type{flex:1;min-width:0}
+.trip.late{border-color:var(--urgent);color:var(--urgent)}
+#f-pin{grid-column:1/-1}
+.pinlbl{display:flex;align-items:center;gap:8px;font-size:.92rem!important;color:var(--ink)!important}
+.pinlbl input{width:20px;height:20px;accent-color:var(--accent)}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:10px;width:38px;height:38px;display:grid;place-items:center;font-size:1.1rem}
+.ghost{border:1px solid var(--line);background:transparent;border-radius:10px;padding:6px 12px;font-size:.85rem}
+.grid7{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.dow{font-size:.72rem;color:var(--muted);text-align:center;padding-bottom:2px}
+.day{border:0;background:var(--sunken);border-radius:10px;aspect-ratio:5/4;max-width:100%;padding:3px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;line-height:1.2;font-variant-numeric:tabular-nums;font-size:.9rem;min-width:0}
+.day.out{opacity:.35}
+.day.today{box-shadow:inset 0 0 0 2px var(--accent)}
+.day.sel{background:var(--accent);color:var(--accent-ink)}
+.dots{display:flex;flex-wrap:nowrap;overflow:hidden;justify-content:center;gap:2px;max-width:100%;min-height:7px;height:7px}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot.proj{opacity:.45}
+.more{font-size:.6rem;line-height:7px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:10px;font-size:.78rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+
+/* items */
+.list{display:flex;flex-direction:column}
+.item{display:flex;align-items:center;gap:10px;padding:10px 2px;border-top:1px solid var(--line)}
+.list .item:first-child{border-top:0}
+.chk{flex:none;width:26px;height:26px;border-radius:8px;border:2px solid var(--c,var(--muted));background:transparent;display:grid;place-items:center;color:#fff;font-size:.9rem;padding:0}
+.chk.on{background:var(--c,var(--muted))}
+.item .txt{flex:1;min-width:0;display:flex;flex-direction:column;border:0;background:none;text-align:right;padding:0}
+.item .t{overflow-wrap:anywhere}
+.item.done .t{text-decoration:line-through;color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:.76rem;color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:1px 8px;font-size:.74rem;border:1px solid var(--line);white-space:nowrap}
+.pill .dot{width:6px;height:6px}
+.pill.urgent{border-color:var(--urgent);color:var(--urgent);font-weight:600}
+.group-h{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.group-h .sw{width:10px;height:10px;border-radius:3px}
+.empty{color:var(--muted);font-size:.9rem;padding:8px 0}
+.cats-quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.cq{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:.82rem;display:inline-flex;align-items:center;gap:6px}
+.cq .dot{width:8px;height:8px}
+details summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding-top:6px}
+
+/* dock */
+.dock{position:fixed;inset-inline:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 24px rgba(0,0,0,.06)}
+.dock-in{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
+.entry{display:flex;gap:8px;align-items:flex-end}
+.entry textarea{flex:1;min-width:0;resize:none;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 12px;min-height:44px;max-height:120px;font-size:16px}
+.addbtn{flex:none;height:44px;padding:0 18px;border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-weight:600}
+.addbtn:disabled{opacity:.45}
+.hint{font-size:.76rem;color:var(--muted)}
+.preview{display:flex;flex-wrap:wrap;gap:6px}
+.pv{border:1px solid var(--c);border-radius:10px;padding:4px 8px;background:var(--bg);display:inline-flex;align-items:center;gap:6px;font-size:.82rem;max-width:100%}
+.pv .dot{background:var(--c)}
+.sg{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:.9rem;display:inline-flex;align-items:center;gap:6px}
+.sg .dot{width:8px;height:8px;background:var(--c)}
+.toast{display:flex;align-items:center;justify-content:center;gap:14px}
+.toast .undo{border:0;background:transparent;color:var(--accent-soft);font-weight:700;text-decoration:underline;padding:2px 4px}
+.pv b{font-weight:600;overflow-wrap:anywhere}
+.pv select{border:0;background:transparent;font-size:.78rem;color:var(--muted);max-width:9em}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;max-height:88%;overflow:auto}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:.8rem;color:var(--muted)}
+.field input,.field select,.field textarea{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 10px;min-width:0;width:100%;font-size:16px}
+.gridclip{margin-top:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{border:0;border-radius:10px;padding:10px 16px;font-weight:600;background:var(--accent);color:var(--accent-ink)}
+.btn.sec{background:var(--sunken);color:var(--ink)}
+.btn.del{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+.toast{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));inset-inline:16px;margin:0 auto;max-width:420px;z-index:60;background:var(--ink);color:var(--bg);border-radius:12px;padding:10px 14px;font-size:.9rem;text-align:center}
+
+/* categories editor */
+.catrow{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:8px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.catrow:first-child{border-top:0}
+.catrow input[type=color]{width:40px;height:40px;border:0;padding:0;background:none;border-radius:10px}
+.catrow .f{display:flex;flex-direction:column;gap:6px;min-width:0}
+.catrow input[type=text],.catrow select,.catrow textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 8px;width:100%;min-width:0}
+.catrow textarea{font-size:.82rem;min-height:56px}
+@media (prefers-reduced-motion: no-preference){.day,.chk,nav.tabs button{transition:background .15s, box-shadow .15s}}
+@media (max-width:420px){nav.tabs button{font-size:.8rem}.brand{font-size:1.45rem}}
+/* sign-in gate */
+.gate{position:fixed;inset:0;z-index:70;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.gate .box{max-width:380px;width:100%;display:flex;flex-direction:column;gap:14px;text-align:center}
+.gate h1{margin:0;font-size:1.6rem}
+.gate p{margin:0;color:var(--muted)}
+.gate .btn{padding:12px 16px;font-size:1rem}
+/* mic */
+.micbtn{flex:none;width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center}
+.micbtn.on{background:var(--urgent);border-color:var(--urgent);color:#fff;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+@media (prefers-reduced-motion: reduce){.micbtn.on{animation:none}}
+.talk{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+.talk button{width:150px;height:150px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-size:1.1rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.sync.off i{background:var(--urgent)}
+.backup{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="dates" id="dates"></div>
+    <div class="row" style="gap:10px;flex-wrap:nowrap"><div class="sync" id="sync"><i></i><span>جارِ الاتصال…</span></div>
+    <button class="iconbtn sm themebtn" id="themeBtn" aria-label="تبديل الوضع الداكن والفاتح"></button></div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="home" aria-selected="true">الرئيسية<span class="badge" id="badge-home" hidden>0</span></button>
+    <button role="tab" data-tab="shop" aria-selected="false">المشتريات<span class="badge" id="badge-shop" hidden>0</span></button>
+    <button role="tab" data-tab="tasks" aria-selected="false">المهام<span class="badge" id="badge-tasks" hidden>0</span></button>
+    <button role="tab" data-tab="inbox" aria-selected="false">الوارد<span class="badge" id="badge-inbox" hidden>0</span></button>
+    <button role="tab" data-tab="cats" aria-selected="false">التصنيفات</button>
+  </nav>
+
+  <section class="view" id="view-home">
+    <div class="card calcard">
+      <div class="cal-head">
+        <button class="iconbtn" id="prevM" aria-label="الشهر السابق"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <h2 id="monthTitle"></h2>
+        <button class="ghost" id="todayBtn">اليوم</button>
+        <button class="iconbtn" id="nextM" aria-label="الشهر التالي"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+      <div class="grid7" id="dow"></div>
+      <div class="gridclip" id="gridClip"><div class="grid7" id="calGrid"></div>
+      <div class="legend" id="legend"></div></div>
+    </div>
+    <div class="card daycard">
+      <div class="list" id="dayList"></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-tasks" hidden></section>
+  <section class="view" id="view-shop" hidden></section>
+  <section class="view" id="view-inbox" hidden></section>
+  <section class="view" id="view-cats" hidden></section>
+</div>
+
+<div class="dock">
+  <div class="dock-in">
+    <div class="preview" id="preview"></div>
+    <div class="entry">
+      <textarea id="entry" rows="1" placeholder="اكتب أو اضغط المايك…"></textarea>
+      <button class="micbtn" id="micBtn" aria-label="إدخال صوتي" hidden><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      <button class="addbtn" id="addBtn" disabled>أضف</button>
+    </div>
+  </div>
+</div>
+
+<div id="focusHost" class="focus" hidden></div>
+<div id="sheetHost"></div>
+<div class="toast" id="toast" hidden></div>
+<div class="gate" id="gate"><div class="box">
+  <h1>دفتر البيت</h1>
+  <p id="gateMsg">جارِ التحميل…</p>
+  <button class="btn" id="gateBtn" hidden></button>
+  <button class="btn sec" id="gateOut" hidden>تسجيل الخروج</button>
+</div></div>
+<div class="talk" id="talk" hidden><button id="talkBtn"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>اضغط وتكلّم</button></div>
+<script src="config.js"></script>
+</body>
+</html>
+
+<script>
+/* ===================== helpers ===================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const parseYmd = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const addMonths = (d, n) => { const x = new Date(d); const day = x.getDate(); x.setDate(1); x.setMonth(x.getMonth() + n); const last = new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate(); x.setDate(Math.min(day, last)); return x; };
+const todayStr = () => ymd(new Date());
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const fmtG = new Intl.DateTimeFormat("ar-u-ca-gregory-nu-latn", { weekday: "long", day: "numeric", month: "long" });
+const fmtShort = new Intl.DateTimeFormat("ar-u-ca-gregory-nu-latn", { day: "numeric", month: "short" });
+const fmtMonth = new Intl.DateTimeFormat("ar-u-ca-gregory-nu-latn", { month: "long", year: "numeric" });
+let fmtH; try { fmtH = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura-nu-latn", { day: "numeric", month: "long", year: "numeric" }); } catch (e) { fmtH = null; }
+function toast(msg, undo) {
+  const t = $("#toast"); t.innerHTML = `<span>${esc(msg)}</span>`; t.hidden = false;
+  if (undo) { const b = document.createElement("button"); b.className = "undo"; b.textContent = "تراجع"; b.onclick = () => { t.hidden = true; undo(); }; t.appendChild(b); }
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, undo ? 5000 : 2200);
+}
+
+/* ===================== Arabic parser (pure) ===================== */
+//#PARSER-START
+const AR_DIGITS = { "٠":"0","١":"1","٢":"2","٣":"3","٤":"4","٥":"5","٦":"6","٧":"7","٨":"8","٩":"9" };
+function clean(s) { return String(s).replace(/[ً-ْـ]/g, "").replace(/[٠-٩]/g, d => AR_DIGITS[d]).replace(/\s+/g, " ").trim(); }
+function norm(s) { return clean(s).replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").toLowerCase(); }
+// pattern written in normalized form -> tolerant regex for original text
+function fx(p) { return p.replace(/ا/g, "[اأإآ]").replace(/ه/g, "[هة]").replace(/ي/g, "[يى]"); }
+const NUMW = { "واحد":1,"يومين":2,"اثنين":2,"ثلاث":3,"ثلاثه":3,"اربع":4,"اربعه":4,"خمس":5,"خمسه":5,"ست":6,"سته":6,"سبع":7,"سبعه":7,"ثمان":8,"ثمانيه":8,"تسع":9,"تسعه":9,"عشر":10,"عشره":10 };
+const WEEKDAYS = ["الاحد","الاثنين","الثلاثاء","الاربعاء","الخميس","الجمعه","السبت"];
+const SHOP_VERBS = ["اشتري","اشتر","اشترِ","جيب","جيبوا","هات","نحتاج","محتاجين","ناقص","ناقصنا","خلص","خلصت","شراء","نشتري"];
+const TASK_VERBS = ["نظف","تنظيف","رتب","ترتيب","اغسل","غسيل","غسل","اكوي","كوي","غير","تغيير","صلح","تصليح","اصلاح","اتصل","كلم","ادفع","دفع","سدد","سداد","فاتوره","موعد","احجز","حجز","راجع","مراجعه","جدد","تجديد","ودي","وصل","وصلي","ركب","تركيب","افحص","فحص","اسقي","سقي","ازرع","تذكير","ذكرني","اطبخ","جهز","تجهيز","شيل","نزل","ارسل","استلم"];
+
+function tokenVariants(t) {
+  const v = new Set([t]);
+  for (const p of ["وال","بال","لل","فال","ال","و","ب","ل"]) if (t.startsWith(p) && t.length - p.length >= 2) v.add(t.slice(p.length));
+  return [...v];
+}
+function kwHit(tokens, kw) {
+  const k = norm(kw); if (!k) return false;
+  if (k.includes(" ")) return tokens.join(" ").includes(k);
+  return tokens.some(t => tokenVariants(t).some(v => v === k || (k.length >= 3 && v.startsWith(k) && v.length - k.length <= 2)));
+}
+function scoreCats(text, cats) {
+  const tokens = norm(text).split(" ").filter(Boolean);
+  let best = null, bestScore = 0;
+  for (const c of cats) {
+    let s = 0; for (const kw of c.kw || []) if (kwHit(tokens, kw)) s++;
+    if (s > bestScore) { best = c; bestScore = s; }
+  }
+  return { cat: best, score: bestScore, tokens };
+}
+
+function parseWhen(text, now) {
+  let t = clean(text); const n = norm(t); let date = null; let recur = null; let priority = "normal";
+  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const strip = re => { t = t.replace(new RegExp(re, "g"), " "); };
+  // priority
+  if (/(عاجل|مستعجل|ضروري|بسرعه|مهم جدا)/.test(n)) { priority = "urgent"; strip(fx("(عاجل|مستعجل|ضروري|بسرعه|مهم جدا)")); }
+  // recurrence
+  let m = n.match(/كل\s+(\d+|[^\s]+)?\s*(يوم|ايام|اسبوع|اسابيع|اسبوعين|شهر|شهور|اشهر|شهرين|سنه|سنين|سنوات)/);
+  if (m) {
+    let num = m[1] && /^\d+$/.test(m[1]) ? +m[1] : (m[1] && NUMW[m[1]]) || 1;
+    let unit = m[2];
+    if (unit === "اسبوعين" || unit === "شهرين") num = 2;
+    unit = /يوم|ايام/.test(unit) ? "day" : /اسبوع|اسابيع/.test(unit) ? "week" : /شهر|شهور|اشهر/.test(unit) ? "month" : "year";
+    if (m[1] && !/^\d+$/.test(m[1]) && !NUMW[m[1]]) num = 1;
+    recur = { n: num, unit };
+    strip(fx("كل\\s+(\\d+|[^\\s]+)?\\s*(يوم|ايام|اسبوع|اسابيع|اسبوعين|شهر|شهور|اشهر|شهرين|سنه|سنين|سنوات)"));
+  }
+  const nn = norm(t);
+  // relative days
+  if (/بعد\s+بكر[هه]/.test(nn)) { date = addDays(base, 2); strip(fx("بعد\\s+بكره")); }
+  else if (/(بكره|بكرا|غدا|باكر)/.test(nn)) { date = addDays(base, 1); strip(fx("(بكره|بكرا|غدا|غدًا|باكر)")); }
+  else if (/(اليوم|الحين|الليله)/.test(nn)) { date = base; strip(fx("(اليوم|الحين|الليله)")); }
+  if (!date) {
+    const r = nn.match(/بعد\s+(\d+|[^\s]+)\s*(يوم|ايام|يومين|اسبوع|اسابيع|اسبوعين|شهر|شهرين)/);
+    if (r) {
+      let k = /^\d+$/.test(r[1]) ? +r[1] : NUMW[r[1]] || 1; const u = r[2];
+      if (r[1] === "يومين" || u === "يومين" || u === "اسبوعين" || u === "شهرين") k = /^\d+$/.test(r[1]) ? k : 2;
+      date = /اسبوع|اسابيع/.test(u) ? addDays(base, 7 * k) : /شهر/.test(u) ? addMonths(base, k) : addDays(base, k);
+      strip(fx("بعد\\s+(\\d+|[^\\s]+)\\s*(يوم|ايام|يومين|اسبوع|اسابيع|اسبوعين|شهر|شهرين)"));
+    } else if (/(الاسبوع|الاسبوع)\s+(الجاي|القادم|الياي)/.test(nn)) { date = addDays(base, 7); strip(fx("الاسبوع\\s+(الجاي|القادم|الياي)")); }
+    else if (/(الشهر)\s+(الجاي|القادم|الياي)/.test(nn)) { date = addMonths(base, 1); strip(fx("الشهر\\s+(الجاي|القادم|الياي)")); }
+  }
+  if (!date) {
+    for (let i = 0; i < 7; i++) {
+      const w = WEEKDAYS[i];
+      if (new RegExp("(^|\\s)(يوم\\s+)?" + w + "($|\\s)").test(nn)) {
+        let diff = (i - base.getDay() + 7) % 7; if (diff === 0) diff = 7;
+        date = addDays(base, diff); strip(fx("(يوم\\s+)?" + w)); break;
+      }
+    }
+  }
+  if (!date) {
+    const d = nn.match(/(?:يوم|بتاريخ)\s+(\d{1,2})(?:\s|$)/);
+    if (d && +d[1] >= 1 && +d[1] <= 31) {
+      let x = new Date(base.getFullYear(), base.getMonth(), +d[1]); if (x < base) x = new Date(base.getFullYear(), base.getMonth() + 1, +d[1]);
+      date = x; strip(fx("(يوم|بتاريخ)\\s+" + d[1]));
+    }
+  }
+  t = t.replace(/\s+/g, " ").trim();
+  return { rest: t, date: date ? ymd(date) : null, recur, priority };
+}
+
+function stripVerbs(text, verbs) {
+  let t = " " + text + " ";
+  for (const v of verbs) t = t.replace(new RegExp("(^|\\s)" + fx(norm(v)) + "(?=\\s)", "g"), " ");
+  return t.replace(/\s+/g, " ").replace(/^\s*(لي|لنا|من|و)\s+/, "").trim();
+}
+
+/* returns [{title, cat, date, recur, priority}] ; cat = category id or "inbox" */
+function parseEntry(raw, cats, now = new Date()) {
+  // one entry = one item: no splitting on commas, new lines or "و"
+  const lines = [clean(raw).replace(/[\n]+/g, " ").trim()].filter(Boolean);
+  const out = [];
+  const taskCats = cats.filter(c => c.kind === "task"), shopCats = cats.filter(c => c.kind === "shop");
+  for (const line of lines) {
+    const w = parseWhen(line, now);
+    const n = norm(w.rest), toks = n.split(" ");
+    const shopSig = toks.some(t => SHOP_VERBS.map(norm).includes(t));
+    const taskSig = !shopSig && toks.some(t => TASK_VERBS.map(norm).some(v => tokenVariants(t).includes(v)));
+    let body = shopSig ? stripVerbs(w.rest, SHOP_VERBS) : w.rest;
+    if (!body) continue;
+    for (const p of [body]) {
+      let cat = "inbox";
+      if (taskSig || w.recur) {
+        const r = scoreCats(p, taskCats); cat = (r.cat || taskCats[0] || {}).id || "inbox";
+      } else {
+        const rs = scoreCats(p, shopCats), rt = scoreCats(p, taskCats);
+        if (rs.score > 0 && rs.score >= rt.score) cat = rs.cat.id;
+        else if (rt.score > 0) cat = rt.cat.id;
+      }
+      out.push({ title: p, cat, date: w.date, recur: w.recur, priority: w.priority });
+    }
+  }
+  return out;
+}
+//#PARSER-END
+
+/* ===================== default categories ===================== */
+const DEFAULT_CATS = [
+  { id: "tasks", name: "مهام المنزل", kind: "task", color: "#d9480f", kw: ["نظف","رتب","غسيل","اغسل","المكيف","فلتر","صيانه","اتصل","ادفع","فاتوره","موعد","احجز","راجع","جدد","ودي","ركب","افحص","اسقي","الزرع","السياره","الحديقه","المطبخ","السباك","الكهربائي","الشركه"] },
+  { id: "super", name: "سوبرماركت", kind: "shop", color: "#2563eb", kw: ["حليب","لبن","خبز","بيض","رز","ارز","سكر","شاي","قهوه","زيت","ملح","طحين","معكرونه","مكرونه","جبن","جبنه","زبده","زبادي","روب","عصير","ماء","مويه","مياه","مناديل","كلينكس","صابون","شامبو","منظف","معطر","تايد","فيري","كلوركس","معجون","حفاضات","بسكويت","شيبس","تونه","فول","حمص","صلصه","كاتشب","مايونيز","عسل","تمر","كورن","شوفان","بيبسي","اكياس","قصدير","نشاء","بهارات","هيل","زعفران","كريمه","قشطه","نوتيلا","مربى","خضار","خضره","فواكه","فاكهه","طماطم","طماط","خيار","بصل","ثوم","بطاطس","بطاطا","جزر","خس","بقدونس","كزبره","نعناع","ليمون","موز","تفاح","برتقال","عنب","بطيخ","فراوله","مانجو","فلفل","باذنجان","كوسه","ملفوف","لحم","لحمه","دجاج","فراخ","سمك","روبيان","ربيان","كبده","مفروم","ستيك","ذبيحه","خروف","حاشي","افخاذ","صدور"] },
+  { id: "pharma", name: "صيدلية", kind: "shop", color: "#c026d3", kw: ["صيدليه","دواء","دوا","علاج","بنادول","فيفادول","فيتامين","شراب كحه","مسكن","مرهم","ضماد","لاصق جروح","قطره","كمامات","معقم","بخاخ","تحاميل","وصفه","حرارة","ميزان حراره","واقي شمس","مرطب"] },
+  { id: "tools", name: "عدد وأدوات صيانة", kind: "shop", color: "#a16207", kw: ["مفك","مطرقه","شاكوش","مسامير","برغي","براغي","لمبه","لمبات","ليد","سلك","توصيله","افياش","فيش","دريل","مثقاب","سليكون","غراء","بويه","دهان","بطاريات","بطاريه","حنفيه","شطاف","عازل","شريط","مفتاح ربط","سلم","قفل","فلتر مكيف","خرطوم"] },
+  { id: "retail", name: "محلات تجزئة", kind: "shop", color: "#7c3aed", kw: ["ملابس","ثوب","ثياب","شماغ","غتره","حذاء","جزمه","نعال","شنطه","عطر","بخور","هديه","كاسات","صحون","اواني","قدر","مخدات","مفارش","ستاره","سجاده","العاب","لعبه","دفاتر","قرطاسيه","اقلام","مكتبه","اثاث","كرسي","طاوله"] },
+  { id: "online", name: "مشتريات أونلاين", kind: "shop", color: "#0e7490", kw: ["امازون","نون","اونلاين","شي ان","طلب","شحنه","توصيل","علي اكسبريس"] }
+];
+const INBOX = { id: "inbox", name: "الوارد", kind: "inbox", color: "#8a8f8b" };
+
+/* ===================== state & store ===================== */
+const state = { items: [], cats: DEFAULT_CATS, tab: "home", month: new Date(), sel: todayStr(), mode: "loading", readOnly: false, calCollapsed: false };
+const catById = id => id === "inbox" ? INBOX : (state.cats.find(c => c.id === id) || INBOX);
+const kindOf = it => catById(it.cat).kind;
+state.trips = {};   // shopping trip date per shop category: {catId: "yyyy-mm-dd"}
+state.closedShop = (() => { try { return new Set(JSON.parse(localStorage.getItem("daftar-closed-shop") || "[]")); } catch (e) { return new Set(); } })();
+state.closedGroups = (() => { try { return new Set(JSON.parse(localStorage.getItem("daftar-closed-groups") || "[]")); } catch (e) { return new Set(); } })();
+
+/* Effective date. Shop items follow their category's trip date unless pinned to their own date. */
+function effDate(it) {
+  if (kindOf(it) !== "shop") return it.date || null;
+  if (it.done && it.doneAt) return ymd(new Date(it.doneAt));   // a bought item stays on the day it was bought, as a record
+  const d = it.pin ? it.date : (state.trips[it.cat] || it.date);
+  // once a shopping day has passed, what's left un-bought loses its date and waits to be rescheduled
+  return d && (it.done || d >= todayStr()) ? d : null;
+}
+/* a store's date, only while it is today or later */
+const liveTrip = cid => { const t = state.trips[cid]; return t && t >= todayStr() ? t : null; };
+/* the category's current trip, if it still has open items following it */
+function tripFor(catId, exceptId) {
+  const t = state.trips[catId];
+  const active = state.items.some(x => x.cat === catId && x.id !== exceptId && !x.done && !x.pin);
+  return t && active ? t : null;
+}
+/* a category date that has passed with nothing left to buy is stale: drop it so new items start undated */
+async function dropStaleTrip(catId, exceptId) {
+  const t = state.trips[catId];
+  if (t && t < todayStr()) await store.setTrip(catId, null);
+}
+/* the date a new, un-dated item in this category would get (or null) */
+function plannedTrip(catId) {
+  const t = state.trips[catId];
+  return t && t >= todayStr() ? t : null;
+}
+
+
+/* ===== purchase history: one small document, keyed by normalized name; feeds the entry suggestions ===== */
+const HIST_DAYS = 365;
+state.history = {};
+async function recordBought(it) {
+  const key = norm(it.title).replace(/[.\/]/g, " ").trim(); if (!key) return;
+  const prev = state.history[key], entry = { t: it.title, c: it.cat, n: ((prev && prev.n) || 0) + 1, d: todayStr() };
+  const cutoff = ymd(addDays(new Date(), -HIST_DAYS));
+  const next = {}; for (const k in state.history) if ((state.history[k].d || "") >= cutoff) next[k] = state.history[k];
+  next[key] = entry; const pruned = Object.keys(next).length !== Object.keys(state.history).length + (prev ? 0 : 1);
+  state.history = next;
+  if (!db) return;
+  const ref = db.doc("history/recent");
+  // merge only this entry (other devices may be writing theirs); rewrite the whole map only when pruning old ones
+  (pruned ? ref.set({ items: next }) : ref.merge({ items: { [key]: entry } })).catch(() => {});
+}
+/* bought shop items stay (struck through) on their day, then are removed; history keeps the name */
+async function sweepBought() {
+  // keep a year of purchases on the calendar; older bought items are deleted (at most once a day per device)
+  if (!db || !db.oldDone) return;
+  const today = todayStr();
+  try { if (localStorage.getItem("daftar-swept") === today) return; localStorage.setItem("daftar-swept", today); } catch (e) {}
+  const cutoff = addDays(new Date(), -HIST_DAYS).getTime();
+  try { for (const it of await db.oldDone(cutoff)) if (catById(it.cat).kind === "shop") store.remove(it.id); } catch (e) {}
+}
+function suggestions(text) {
+  const q = norm(text); if (q.length < 2) return [];
+  const open = new Set(state.items.filter(it => !it.done).map(it => norm(it.title)));
+  return Object.entries(state.history)
+    .filter(([k, h]) => k.includes(q) && k !== q && !open.has(k) && catById(h.c).kind === "shop")
+    .sort((a, b) => (b[0].startsWith(q) - a[0].startsWith(q)) || (b[1].n - a[1].n))
+    .slice(0, 4);
+}
+
+let db = null;
+const store = {
+  async add(it) {
+    const id = uid(); const doc = { ...it, done: false, doneAt: null, createdAt: Date.now() };
+    if (db) db.doc("items/" + id).set(doc).catch(fail);
+    return id;
+  },
+  async update(id, patch) {
+    if (db) db.doc("items/" + id).update(patch).catch(fail);
+  },
+  async remove(id) {
+    if (db) db.doc("items/" + id).delete().catch(fail);
+  },
+  async setTrip(catId, date) {
+    const next = { ...state.trips }; if (date) next[catId] = date; else delete next[catId];
+    state.trips = next;
+    if (db) db.doc("config/trips").set(next).catch(fail);
+    render();
+  },
+  async saveCats(list) {
+    state.cats = list;
+    if (db) db.doc("config/categories").set({ list }).catch(fail);
+    render();
+  }
+};
+function fail(e) {
+  if (e && e.code === "permission-denied") { state.readOnly = true; toast("ليس لديك صلاحية التعديل في هذا الدفتر"); render(); }
+  else if (e && e.code === "resource-exhausted") toast("تجاوز الدفتر الحد المجاني اليومي. يعود العمل غداً تلقائياً");
+  else toast("تعذّر الحفظ. تحقق من الاتصال وحاول مرة أخرى");
+}
+function setSync(mode) {
+  state.mode = mode; const el = $("#sync");
+  const off = mode === "db" && !navigator.onLine;
+  el.className = "sync " + (off ? "off" : mode === "db" && !state.readOnly ? "on" : "");
+  el.title = mode === "db" ? (state.readOnly ? "مشترك · قراءة فقط" : "مشترك مع العائلة") : "";
+  el.querySelector("span").textContent = off ? "غير متصل · يُحفظ عند الاتصال" : mode === "db" ? (state.readOnly ? "مشترك · قراءة فقط" : "مشترك مع العائلة") : "جارِ الاتصال…";
+}
+
+/* ===================== recurrence ===================== */
+function stepDate(s, r) {
+  const d = parseYmd(s);
+  return ymd(r.unit === "day" ? addDays(d, r.n) : r.unit === "week" ? addDays(d, 7 * r.n) : r.unit === "month" ? addMonths(d, r.n) : addMonths(d, 12 * r.n));
+}
+const recurLabel = r => !r ? "" : r.unit === "day" ? (r.n === 1 ? "يومياً" : `كل ${r.n} أيام`) : r.unit === "week" ? (r.n === 1 ? "أسبوعياً" : r.n === 2 ? "كل أسبوعين" : `كل ${r.n} أسابيع`) : r.unit === "month" ? (r.n === 1 ? "شهرياً" : r.n === 2 ? "كل شهرين" : `كل ${r.n} أشهر`) : (r.n === 1 ? "سنوياً" : `كل ${r.n} سنوات`);
+
+/* occurrences per day for [from,to] */
+function occurrences(from, to) {
+  const map = {};
+  const push = (k, it, proj) => (map[k] = map[k] || []).push({ it, proj });
+  for (const it of state.items) {
+    const ed = it.cat === "inbox" ? null : effDate(it);
+    if (!ed) continue;
+    if (ed >= from && ed <= to) push(ed, it, false);
+    if (it.recur && !it.done && kindOf(it) === "task") { let d = it.date, g = 0; while (g++ < 400) { d = stepDate(d, it.recur); if (d > to) break; if (d >= from) push(d, it, true); } }
+  }
+  return map;
+}
+
+/* ===================== rendering ===================== */
+function itemRow(it, opts = {}) {
+  const c = catById(it.cat); const done = !!it.done;
+  const meta = [];
+  if (opts.showCat) meta.push(`<span class="pill"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</span>`);
+  if (it.priority === "urgent") meta.push(`<span class="pill urgent">عاجل</span>`);
+  const ed = effDate(it);
+  if (ed && opts.showDate !== false) { const late = !done && ed < todayStr(); meta.push(`<span${late ? ' style="color:var(--urgent);font-weight:600"' : ""}>${it.pin ? "تاريخ خاص · " : ""}${ed === todayStr() ? "اليوم" : fmtShort.format(parseYmd(ed))}${late ? " · متأخرة" : ""}</span>`); }
+  if (it.recur && kindOf(it) === "task") meta.push(`<span>↻ ${recurLabel(it.recur)}</span>`);
+  if (opts.proj) meta.push(`<span>موعد متكرر قادم</span>`);
+  return `<div class="item${done ? " done" : ""}" style="--c:${c.color}">
+    <button class="chk${done ? " on" : ""}" data-act="toggle" data-id="${it.id}" aria-label="${done ? "إلغاء الإنجاز" : "إنجاز"}" ${state.readOnly || opts.proj ? "disabled" : ""}>${done ? "✓" : ""}</button>
+    <button class="txt" data-act="edit" data-id="${it.id}"><span class="t">${esc(it.title)}</span>${meta.length ? `<span class="meta">${meta.join("")}</span>` : ""}</button>
+  </div>`;
+}
+const sortItems = arr => arr.slice().sort((a, b) => (a.done - b.done) || ((b.priority === "urgent") - (a.priority === "urgent")) || String(effDate(a) || "9").localeCompare(String(effDate(b) || "9")) || (a.createdAt || 0) - (b.createdAt || 0));
+const chev = `<svg class="chev" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+function renderHome() {
+  const col = state.calCollapsed;
+  const m = col ? parseYmd(state.sel) : state.month; const y = m.getFullYear(), mo = m.getMonth();
+  $("#monthTitle").textContent = fmtMonth.format(m);
+  const first = new Date(y, mo, 1);
+  const start = col ? addDays(m, -m.getDay()) : addDays(first, -first.getDay());
+  const N = col ? 7 : 42;
+  const end = addDays(start, N - 1);
+  if (db && db.ensureDoneFrom) db.ensureDoneFrom(start.getTime());
+  const occ = occurrences(ymd(start), ymd(end));
+  const t = todayStr(); let html = "";
+  $("#legend").hidden = col;
+  $("#prevM").setAttribute("aria-label", col ? "الأسبوع السابق" : "الشهر السابق");
+  $("#nextM").setAttribute("aria-label", col ? "الأسبوع التالي" : "الشهر التالي");
+  for (let i = 0; i < N; i++) {
+    const d = addDays(start, i), k = ymd(d), list = occ[k] || [];
+    const byCat = new Map();   // one dot per category; faded when nothing in it is still open
+    for (const o of list) { const live = !o.proj && !o.it.done; byCat.set(o.it.cat, (byCat.get(o.it.cat) || false) || live); }
+    const dk = [...byCat.keys()];
+    const dots = dk.slice(0, 5).map(c => `<span class="dot${byCat.get(c) ? "" : " proj"}" style="background:${catById(c).color}"></span>`).join("") + (dk.length > 5 ? `<span class="more">+</span>` : "");
+    html += `<button class="day${d.getMonth() !== mo ? " out" : ""}${k === t ? " today" : ""}${k === state.sel ? " sel" : ""}" data-day="${k}" aria-label="${fmtG.format(d)}، ${list.length} عناصر"><span>${d.getDate()}</span><span class="dots">${dots}</span></button>`;
+  }
+  $("#calGrid").innerHTML = html;
+  $("#legend").innerHTML = state.cats.map(c => `<span><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</span>`).join("");
+  const sel = parseYmd(state.sel);
+
+  const { rows, projOf } = dayRows();
+  if (!rows.length) { $("#dayList").innerHTML = `<div class="empty">لا شيء في هذا اليوم. أضف من الشريط بالأسفل، مثلاً «اتصل بالسباك بكرة».</div>`; return; }
+  let out = "";
+  for (const c of state.cats) {
+    const list = sortItems(rows.filter(r => r.it.cat === c.id).map(r => r.it));
+    if (!list.length) continue;
+    const open = list.filter(it => !it.done).length, closed = state.closedGroups.has(c.id);
+    out += `<div class="grp${closed ? " closed" : ""}">
+      <div class="grp-top"><button class="grp-h" data-act="grp" data-cat="${c.id}" aria-expanded="${!closed}"><span class="sw" style="background:${c.color}"></span><span class="gname">${esc(c.name)}</span><span class="gcount">${open ? open : "✓"}</span>${chev}</button>${FOCUS_CATS.includes(c.id) ? `<button class="iconbtn sm" data-act="focus" data-cat="${c.id}" aria-label="عرض ${esc(c.name)} بملء الشاشة">${ICON_EXPAND}</button>` : ""}</div>
+      <div class="list"${closed ? " hidden" : ""}>${list.map(it => itemRow(it, { proj: projOf.get(it), showDate: effDate(it) !== state.sel })).join("")}</div>
+    </div>`;
+  }
+  $("#dayList").innerHTML = out;
+}
+
+/* the selected day's rows (plus overdue items when the selected day is today) */
+function dayRows() {
+  const t = todayStr();
+  const selOcc = occurrences(state.sel, state.sel)[state.sel] || [];
+  const extra = state.sel === t ? state.items.filter(it => it.cat !== "inbox" && !it.done && effDate(it) && effDate(it) < t) : [];
+  const rows = [...extra.map(it => ({ it, proj: false })), ...selOcc];
+  return { rows, projOf: new Map(rows.map(r => [r.it, r.proj])) };
+}
+
+/* full-screen list for in-store use (supermarket only); keeps the screen awake while open */
+const FOCUS_CATS = ["super"];
+const ICON_EXPAND = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const ICON_SHRINK = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+let wakeLock = null;
+async function setFocus(cid) {
+  state.focusCat = cid; renderFocus();
+  try {
+    if (cid && navigator.wakeLock && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => { wakeLock = null; }); }
+    if (!cid && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch (e) { wakeLock = null; }
+}
+function renderFocus() {
+  const host = $("#focusHost"), cid = state.focusCat;
+  host.hidden = !cid; document.body.classList.toggle("is-focus", !!cid);
+  if (!cid) { host.innerHTML = ""; return; }
+  const c = catById(cid), { rows, projOf } = dayRows();
+  const list = sortItems(rows.filter(r => r.it.cat === cid).map(r => r.it)), open = list.filter(it => !it.done).length;
+  host.innerHTML = `<div class="focus-h"><span class="sw" style="background:${c.color}"></span><h2>${esc(c.name)}</h2><span class="gcount">${open ? "باقي " + open : "✓ اكتملت"}</span><span class="spacer"></span><button class="iconbtn" data-act="unfocus" aria-label="العودة للعرض العادي">${ICON_SHRINK}</button></div>
+    <div class="list focus-list">${list.length ? list.map(it => itemRow(it, { proj: projOf.get(it), showDate: effDate(it) !== state.sel })).join("") : `<div class="empty">لا أصناف في هذا اليوم.</div>`}</div>`;
+}
+document.addEventListener("visibilitychange", () => { if (state.focusCat && document.visibilityState === "visible" && !wakeLock) setFocus(state.focusCat); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && state.focusCat) setFocus(null); });
+
+function renderTasks() {
+  const tasks = state.items.filter(it => kindOf(it) === "task");
+  const open = sortItems(tasks.filter(it => !it.done)), done = tasks.filter(it => it.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)).slice(0, 30);
+  const taskCats = state.cats.filter(c => c.kind === "task");
+  let html = "";
+  for (const c of taskCats) {
+    const list = open.filter(it => it.cat === c.id);
+    html += `<div class="card"><div class="group-h"><span class="sw" style="background:${c.color}"></span><h2>${esc(c.name)}</h2><span class="spacer"></span><span class="small muted">${list.length}</span></div>
+      <div class="list">${list.length ? list.map(it => itemRow(it)).join("") : `<div class="empty">لا مهام مفتوحة.</div>`}</div></div>`;
+  }
+  if (done.length) html += `<div class="card"><details><summary>المنجزة مؤخراً (${done.length})</summary><div class="list">${done.map(it => itemRow(it, { showCat: taskCats.length > 1 })).join("")}</div></details></div>`;
+  $("#view-tasks").innerHTML = html;
+}
+
+function renderShop() {
+  const shop = state.items.filter(it => kindOf(it) === "shop" && !it.done);   // bought items leave this tab
+  const cats = state.cats.filter(c => c.kind === "shop");
+  let html = "";
+  if (shop.length) html += `<div class="row"><span class="muted small">${shop.length} عنصر للشراء</span></div>`;
+  for (const c of cats) {
+    const list = sortItems(shop.filter(it => it.cat === c.id));
+    if (!list.length) continue;
+    const trip = liveTrip(c.id), hasFollowers = list.some(it => !it.done && !it.pin);
+    const tripLabel = trip ? (trip === todayStr() ? "اليوم" : fmtG.format(parseYmd(trip))) : "بدون موعد";
+    const late = false;
+    const shut = state.closedShop.has(c.id), openN = list.filter(i => !i.done).length;
+    html += `<div class="card${shut ? " closed" : ""}"><button class="grp-h" data-act="sgrp" data-cat="${c.id}" aria-expanded="${!shut}"><span class="sw" style="background:${c.color}"></span><span class="gname">${esc(c.name)}</span><span class="gcount">${openN || "✓"}</span>${chev}</button>
+      ${hasFollowers ? `<button class="trip${late ? " late" : ""}" data-act="trip" data-cat="${c.id}" ${state.readOnly ? "disabled" : ""}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>${trip ? `<b>${tripLabel}</b>${late ? " · متأخر" : ""}` : `<span class="muted">حدد تاريخاً</span>`}</span><span class="small muted">${trip ? "تغيير" : ""}</span></button>` : ""}
+      <div class="list"${shut ? " hidden" : ""}>${list.map(it => itemRow(it, { showDate: !!it.pin })).join("")}</div></div>`;
+  }
+  if (!shop.length) html += `<div class="card empty">القائمة فارغة. اكتب أو قل اسم الصنف، مثلاً «حليب»، وسيُضاف إلى محله.</div>`;
+  $("#view-shop").innerHTML = html;
+}
+
+function renderInbox() {
+  const list = state.items.filter(it => it.cat === "inbox").sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  let html = `<p class="muted small" style="margin:0">ما لم يتعرّف عليه التصنيف التلقائي يصل هنا. اضغط التصنيف المناسب لنقله. لتحسين التعرّف مستقبلاً أضف الكلمة إلى كلمات التصنيف في «التصنيفات».</p>`;
+  if (!list.length) html += `<div class="card empty">الوارد فارغ. كل شيء مصنّف.</div>`;
+  for (const it of list) {
+    html += `<div class="card"><div class="row"><b style="flex:1;min-width:0;overflow-wrap:anywhere">${esc(it.title)}</b><button class="ghost" data-act="edit" data-id="${it.id}">تعديل</button></div>
+      ${it.date ? `<div class="small muted">${fmtShort.format(parseYmd(it.date))}</div>` : ""}
+      <div class="cats-quick">${state.cats.map(c => `<button class="cq" data-act="classify" data-id="${it.id}" data-cat="${c.id}" ${state.readOnly ? "disabled" : ""}><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join("")}</div></div>`;
+  }
+  $("#view-inbox").innerHTML = html;
+}
+
+let catDraft = null;
+function renderCats() {
+  if (!catDraft) catDraft = JSON.parse(JSON.stringify(state.cats));
+  const rows = catDraft.map((c, i) => `<div class="catrow">
+      <input type="color" id="cc-${i}" value="${c.color}" data-ci="${i}" data-f="color" aria-label="لون ${esc(c.name)}">
+      <div class="f">
+        <input type="text" id="cn-${i}" value="${esc(c.name)}" data-ci="${i}" data-f="name" aria-label="اسم التصنيف">
+        <select id="ck-${i}" data-ci="${i}" data-f="kind" aria-label="النوع"><option value="shop"${c.kind === "shop" ? " selected" : ""}>مشتريات</option><option value="task"${c.kind === "task" ? " selected" : ""}>مهام</option></select>
+        <textarea id="cw-${i}" data-ci="${i}" data-f="kw" aria-label="كلمات التعرّف" placeholder="كلمات التعرّف، مفصولة بفواصل">${esc((c.kw || []).join("، "))}</textarea>
+      </div>
+      <button class="iconbtn" data-act="delCat" data-ci="${i}" aria-label="حذف التصنيف" ${catDraft.length <= 1 ? "disabled" : ""}>✕</button>
+    </div>`).join("");
+  $("#view-cats").innerHTML = `<div class="card"><div class="row" style="margin-bottom:4px"><h2>التصنيفات وكلمات التعرّف</h2></div>
+    <p class="small muted" style="margin:0 0 6px">الكلمات هي ما يبحث عنه التطبيق في إدخالك ليختار التصنيف. أضف الأصناف التي تشتريها عادة.</p>
+    <div>${rows}</div>
+    <div class="row" style="margin-top:10px"><button class="btn sec" data-act="addCat" ${state.readOnly ? "disabled" : ""}>+ تصنيف جديد</button><span class="spacer"></span><button class="btn" data-act="saveCats" ${state.readOnly ? "disabled" : ""}>حفظ التصنيفات</button></div></div>` + backupCard();
+}
+
+function renderPreview() {
+  const v = $("#entry").value.trim();
+  $("#addBtn").disabled = !v || state.readOnly;
+  if (!v) { $("#preview").innerHTML = ""; pending = []; return; }
+  pending = parseEntry(v, state.cats).map((p, i) => ({ ...p, _i: i, cat: (pendingOverride[i] ?? p.cat) }));
+  const opts = c => [INBOX, ...state.cats].map(x => `<option value="${x.id}"${x.id === c ? " selected" : ""}>${esc(x.name)}</option>`).join("");
+  const sg = suggestions(v).map(([k, h]) => `<button class="sg" data-act="sugg" data-key="${esc(k)}" style="--c:${catById(h.c).color}"><span class="dot"></span>${esc(h.t)}</button>`).join("");
+  $("#preview").innerHTML = sg + pending.map(p => { const c = catById(p.cat); const pd = p.date || (c.kind === "shop" ? plannedTrip(p.cat) : null); const bits = [pd ? (pd === todayStr() ? "اليوم" : fmtShort.format(parseYmd(pd))) : "", p.recur ? "↻ " + recurLabel(p.recur) : "", p.priority === "urgent" ? "عاجل" : ""].filter(Boolean).join(" · ");
+    return `<span class="pv" style="--c:${c.color}"><span class="dot"></span><b>${esc(p.title)}</b>${bits ? `<span class="small muted">${bits}</span>` : ""}<select data-pv="${p._i}" aria-label="تغيير التصنيف">${opts(p.cat)}</select></span>`; }).join("");
+}
+let pending = [], pendingOverride = {};
+
+/* tab badges: home = open items due today or overdue; shop/tasks = open items; inbox = all unclassified */
+function renderBadges() {
+  const t = todayStr(), open = state.items.filter(it => !it.done);
+  const counts = {
+    home: open.filter(it => it.cat !== "inbox" && effDate(it) && effDate(it) <= t).length,
+    shop: open.filter(it => kindOf(it) === "shop").length,
+    tasks: open.filter(it => kindOf(it) === "task").length,
+    inbox: state.items.filter(it => it.cat === "inbox").length
+  };
+  for (const k in counts) { const b = $("#badge-" + k); b.hidden = !counts[k]; b.textContent = counts[k] > 99 ? "99+" : counts[k]; }
+}
+
+function render() {
+  const t = new Date();
+  $("#dates").innerHTML = `<b>${fmtG.format(t)}</b>${fmtH ? " · " + fmtH.format(t) : ""}`;
+  document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === state.tab));
+  for (const v of ["home", "tasks", "shop", "inbox", "cats"]) $("#view-" + v).hidden = v !== state.tab;
+  renderInbox();
+  renderBadges();
+  if (state.tab === "home") renderHome();
+  if (state.tab === "tasks") renderTasks();
+  if (state.tab === "shop") renderShop();
+  if (state.tab === "cats") renderCats();
+  setSync(state.mode);
+  renderPreview();
+  sizeHome();
+  renderFocus();
+}
+
+/* ===================== edit sheet ===================== */
+function openSheet(id) {
+  const it = state.items.find(x => x.id === id); if (!it) return;
+  const ro = state.readOnly;
+  const r = it.recur || { n: 1, unit: "none" };
+  $("#sheetHost").innerHTML = `<div class="scrim" data-act="closeSheet"><div class="sheet" role="dialog" aria-label="تعديل">
+    <div class="field"><label for="e-title">النص</label><input id="e-title" value="${esc(it.title)}" ${ro ? "disabled" : ""}></div>
+    <div class="two">
+      <div class="field"><label for="e-cat">التصنيف</label><select id="e-cat" ${ro ? "disabled" : ""}>${[INBOX, ...state.cats].map(c => `<option value="${c.id}"${c.id === it.cat ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select></div>
+      <div class="field"><label for="e-date">التاريخ</label><input id="e-date" type="date" value="${effDate(it) || ""}" ${ro ? "disabled" : ""}></div>
+      <div class="field"><label for="e-pri">الأولوية</label><select id="e-pri" ${ro ? "disabled" : ""}><option value="normal">عادي</option><option value="urgent"${it.priority === "urgent" ? " selected" : ""}>عاجل</option></select></div>
+      <div class="field" id="f-pin"><label class="pinlbl"><input type="checkbox" id="e-pin" ${it.pin ? "checked" : ""} ${ro ? "disabled" : ""}> تاريخ خاص لهذا الصنف</label><span class="small muted" id="pinHint"></span></div>
+      <div class="field" id="f-recur"><label for="e-rn">التكرار</label><div class="row" style="flex-wrap:nowrap"><input id="e-rn" type="number" min="1" max="99" value="${r.n}" style="width:4.2em" ${ro ? "disabled" : ""}>
+        <select id="e-ru" ${ro ? "disabled" : ""}><option value="none">بدون</option><option value="day"${r.unit === "day" ? " selected" : ""}>يوم</option><option value="week"${r.unit === "week" ? " selected" : ""}>أسبوع</option><option value="month"${r.unit === "month" ? " selected" : ""}>شهر</option><option value="year"${r.unit === "year" ? " selected" : ""}>سنة</option></select></div></div>
+    </div>
+    <div class="row" id="delRow"><button class="btn del" data-act="askDel" ${ro ? "disabled" : ""}>حذف</button><span class="spacer"></span><button class="btn sec" data-act="closeSheet">إلغاء</button><button class="btn" data-act="saveSheet" data-id="${id}" ${ro ? "disabled" : ""}>حفظ</button></div>
+  </div></div>`;
+  $("#sheetHost .sheet").dataset.id = id;
+  $("#e-cat").addEventListener("change", () => syncSheet(id));
+  $("#e-pin").addEventListener("change", () => syncSheet(id));
+  syncSheet(id);
+}
+/* shop items: date follows the trip unless "own date" is ticked; tasks: date + recurrence */
+function syncSheet(id) {
+  const c = catById($("#e-cat").value), shop = c.kind === "shop", pin = $("#e-pin").checked, d = $("#e-date");
+  $("#f-pin").hidden = !shop; $("#f-recur").hidden = shop;
+  if (shop && !pin) {
+    const trip = liveTrip(c.id);
+    d.disabled = true; d.value = trip || "";
+    $("#pinHint").textContent = trip ? "يتبع تاريخ " + c.name : "بدون تاريخ حتى تحدد تاريخاً لـ" + c.name;
+  } else {
+    d.disabled = state.readOnly; if (shop && !d.value) d.value = state.sel;
+    $("#pinHint").textContent = shop ? "لن يتغيّر مع تاريخ " + c.name : "";
+  }
+}
+function closeSheet() { $("#sheetHost").innerHTML = ""; }
+function openTripSheet(cid) {
+  const c = catById(cid), n = state.items.filter(x => x.cat === cid && !x.done && !x.pin).length;
+  $("#sheetHost").innerHTML = `<div class="scrim" data-act="closeSheet"><div class="sheet" role="dialog" aria-label="تاريخ ${esc(c.name)}">
+    <h2>تاريخ ${esc(c.name)}</h2>
+    <p class="small muted" style="margin:0">ينتقل معه ${n} ${n === 1 ? "صنف" : "أصناف"}. الأصناف ذات التاريخ الخاص لا تتأثر.</p>
+    <div class="field"><label for="t-date">التاريخ</label><input id="t-date" type="date" value="${state.trips[cid] || state.sel}"></div>
+    <div class="row"><span class="spacer"></span><button class="btn sec" data-act="closeSheet">إلغاء</button><button class="btn" data-act="saveTrip" data-cat="${cid}">حفظ</button></div>
+  </div></div>`;
+}
+
+/* ===================== events ===================== */
+document.addEventListener("click", async e => {
+  const el = e.target.closest("[data-act],[data-tab],[data-day]");
+  if (!el) return;
+  if (el.classList.contains("scrim") && e.target !== el) return;
+  if (el.dataset.tab) { state.tab = el.dataset.tab; if (state.tab !== "cats") catDraft = null; window.scrollTo(0, 0); render(); return; }
+  if (el.dataset.day) { state.sel = el.dataset.day; const d = parseYmd(el.dataset.day); if (d.getMonth() !== state.month.getMonth()) state.month = new Date(d.getFullYear(), d.getMonth(), 1); renderHome(); renderPreview(); return; }
+  const id = el.dataset.id, act = el.dataset.act;
+  if (act === "toggle") {
+    const it = state.items.find(x => x.id === id); if (!it) return;
+    if (it.recur && !it.done) { const next = stepDate(it.date || todayStr(), it.recur); await store.update(id, { date: next, lastDone: Date.now() }); toast("تمّت. الموعد القادم " + fmtShort.format(parseYmd(next))); }
+    else if (kindOf(it) === "shop" && !it.done) {
+      await store.update(id, { done: true, doneAt: Date.now() });
+      await recordBought(it); await sweepBought();
+    }
+    else await store.update(id, { done: !it.done, doneAt: !it.done ? Date.now() : null });
+  }
+  if (act === "edit") openSheet(id);
+  if (act === "closeSheet") closeSheet();
+  if (act === "askDel") { $("#delRow").innerHTML = `<span style="flex:1">حذف نهائياً؟</span><button class="btn sec" data-act="closeSheet">تراجع</button><button class="btn del" data-act="confirmDel">نعم، احذف</button>`; }
+  if (act === "confirmDel") { const sid = $("#sheetHost .sheet").dataset.id; closeSheet(); await store.remove(sid); toast("حُذف"); }
+  if (act === "saveSheet") {
+    const title = $("#e-title").value.trim(); if (!title) { toast("اكتب نصاً للعنصر"); return; }
+    const ru = $("#e-ru").value; const rn = Math.max(1, Math.min(99, parseInt($("#e-rn").value, 10) || 1));
+    const date = $("#e-date").value || null, cat = $("#e-cat").value, kind = catById(cat).kind, pri = $("#e-pri").value;
+    let patch;
+    if (kind === "shop") {
+      const pin = $("#e-pin").checked;
+      patch = { title, cat, priority: pri, recur: null, pin: pin && !!date, date: pin ? date : null };
+      closeSheet();
+      if (!pin) await dropStaleTrip(cat, id);
+    } else {
+      patch = { title, cat, priority: pri, pin: false, date: date || (ru !== "none" ? todayStr() : null), recur: ru === "none" ? null : { n: rn, unit: ru } };
+      closeSheet();
+    }
+    await store.update(id, patch);
+  }
+  if (act === "classify") {
+    const c = catById(el.dataset.cat), it = state.items.find(x => x.id === id) || {};
+    if (c.kind === "shop") { await dropStaleTrip(c.id, id); await store.update(id, { cat: c.id, pin: false, date: null }); }
+    else await store.update(id, { cat: c.id, pin: false, date: it.date || null });
+    toast("نُقل إلى " + c.name);
+  }
+  if (act === "grp") {
+    const cid = el.dataset.cat, s = state.closedGroups;
+    s.has(cid) ? s.delete(cid) : s.add(cid);
+    try { localStorage.setItem("daftar-closed-groups", JSON.stringify([...s])); } catch (_) {}
+    renderHome();
+  }
+  if (act === "focus") { setFocus(el.dataset.cat); return; }
+  if (act === "unfocus") { setFocus(null); return; }
+  if (act === "sugg") {
+    const h = state.history[el.dataset.key]; if (!h || state.readOnly) return;
+    entry.value = ""; entry.style.height = ""; pendingOverride = {}; renderPreview(); sizeHome();
+    toast(await addParsed({ title: h.t, cat: state.cats.some(c => c.id === h.c) ? h.c : "inbox", date: null, recur: null, priority: "normal" }));
+    return;
+  }
+  if (act === "sgrp") {
+    const cid = el.dataset.cat, s = state.closedShop;
+    s.has(cid) ? s.delete(cid) : s.add(cid);
+    try { localStorage.setItem("daftar-closed-shop", JSON.stringify([...s])); } catch (_) {}
+    renderShop();
+  }
+  if (act === "trip") openTripSheet(el.dataset.cat);
+  if (act === "saveTrip") { const v = $("#t-date").value; const cid = el.dataset.cat; closeSheet(); if (v) { await store.setTrip(cid, v); toast(catById(cid).name + ": " + fmtShort.format(parseYmd(v))); } }
+  if (act === "clearBought") {
+    const b = state.items.filter(it => kindOf(it) === "shop" && it.done); const cats = new Set(b.map(it => it.cat));
+    for (const it of b) await store.remove(it.id);
+    for (const cid of cats) if (state.trips[cid] && !tripFor(cid)) await store.setTrip(cid, null);   // nothing left to buy there: clear its date
+    toast("مُسحت " + b.length + " عناصر");
+  }
+  if (act === "addCat") { readCatInputs(); catDraft.push({ id: "c" + uid(), name: "تصنيف جديد", kind: "shop", color: "#64748b", kw: [] }); renderCats(); }
+  if (act === "delCat") { readCatInputs(); catDraft.splice(+el.dataset.ci, 1); renderCats(); }
+  if (act === "saveCats") {
+    readCatInputs();
+    const list = catDraft.map(c => ({ ...c, name: c.name.trim() || "بدون اسم" }));
+    const removed = state.cats.filter(c => !list.find(x => x.id === c.id)).map(c => c.id);
+    await store.saveCats(list);
+    for (const it of state.items.filter(it => removed.includes(it.cat))) await store.update(it.id, { cat: "inbox" });
+    catDraft = null; toast("حُفظت التصنيفات");
+  }
+});
+function readCatInputs() {
+  document.querySelectorAll("#view-cats [data-ci][data-f]").forEach(inp => {
+    const c = catDraft[+inp.dataset.ci]; if (!c) return;
+    if (inp.dataset.f === "kw") c.kw = inp.value.split(/[،,\n]+/).map(s => s.trim()).filter(Boolean); else c[inp.dataset.f] = inp.value;
+  });
+}
+function shiftCal(dir) {
+  if (state.calCollapsed) { const d = addDays(parseYmd(state.sel), 7 * dir); state.sel = ymd(d); state.month = new Date(d.getFullYear(), d.getMonth(), 1); renderHome(); renderPreview(); }
+  else { state.month = new Date(state.month.getFullYear(), state.month.getMonth() + dir, 1); renderHome(); }
+}
+$("#prevM").onclick = () => shiftCal(-1);
+$("#nextM").onclick = () => shiftCal(1);
+
+/* calendar shrinks to the selected week when the page is scrolled down, and returns to the full month at the top */
+/* Animated: the month folds up into the selected week (rows above slide out, the box shrinks), and unfolds back.
+   Only height + transform are animated, with the browser's built-in Web Animations (no library). */
+let calAnim = false;
+const EASE = "cubic-bezier(.22,.8,.26,1)";
+function setCollapsed(v) {
+  if (state.calCollapsed === v || calAnim) return;
+  const clip = $("#gridClip"), grid = $("#calGrid");
+  const still = !clip.animate || matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const rowTop = el => el ? el.getBoundingClientRect().top - grid.getBoundingClientRect().top : 0;
+  if (v) {
+    const sel = grid.querySelector(".day.sel") || grid.querySelector(".day");
+    const r = rowTop(sel), h0 = clip.offsetHeight, h1 = sel.offsetHeight;
+    const apply = () => { state.calCollapsed = true; renderHome(); };
+    if (still) return apply();
+    calAnim = true; clip.style.overflow = "hidden";
+    const o = { duration: 300, easing: EASE, fill: "forwards" };
+    const a = clip.animate([{ height: h0 + "px" }, { height: h1 + "px" }], o);
+    const b = grid.animate([{ transform: "none" }, { transform: `translateY(${-r}px)` }], o);
+    $("#legend").animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: "forwards" });
+    a.onfinish = () => { a.cancel(); b.cancel(); $("#legend").getAnimations().forEach(x => x.cancel()); clip.style.overflow = ""; apply(); calAnim = false; };
+  } else {
+    const h0 = clip.offsetHeight;
+    state.calCollapsed = false;
+    const d = parseYmd(state.sel); state.month = new Date(d.getFullYear(), d.getMonth(), 1);
+    renderHome();
+    if (still) return;
+    const r = rowTop(grid.querySelector(".day.sel")), h1 = clip.offsetHeight;
+    calAnim = true; clip.style.overflow = "hidden";
+    const o = { duration: 320, easing: EASE };
+    const a = clip.animate([{ height: h0 + "px" }, { height: h1 + "px" }], o);
+    grid.animate([{ transform: `translateY(${-r}px)` }, { transform: "none" }], o);
+    $("#legend").animate([{ opacity: 0 }, { opacity: 0, offset: .5 }, { opacity: 1 }], o);
+    a.onfinish = () => { clip.style.overflow = ""; calAnim = false; };
+  }
+}
+/* collapse when the day list is scrolled down; expand only when the user pulls down / scrolls up while already at the top
+   (a resize that clamps scrollTop to 0 must not re-expand, or it would flicker) */
+(() => {
+  const L = $("#dayList");
+  L.addEventListener("scroll", () => { if (!state.calCollapsed && L.scrollTop > 40) setCollapsed(true); }, { passive: true });
+  /* swipe gestures anywhere on the home screen, so it works even when the day's list is too short to scroll:
+     swipe up -> shrink to one week; swipe down while the list is at its top -> full month */
+  const V = $("#view-home");
+  V.addEventListener("wheel", e => {
+    if (!state.calCollapsed && e.deltaY > 0) setCollapsed(true);
+    else if (state.calCollapsed && e.deltaY < 0 && L.scrollTop <= 0) setCollapsed(false);
+  }, { passive: true });
+  let ty = null, tx = 0, topAtStart = false;
+  V.addEventListener("touchstart", e => { ty = e.touches[0].clientY; tx = e.touches[0].clientX; topAtStart = L.scrollTop <= 0; }, { passive: true });
+  V.addEventListener("touchmove", e => {
+    if (ty === null) return;
+    const dy = e.touches[0].clientY - ty, dx = e.touches[0].clientX - tx;
+    if (Math.abs(dy) < 28 || Math.abs(dx) > Math.abs(dy)) return;
+    if (!state.calCollapsed && dy < 0) { ty = null; setCollapsed(true); }
+    else if (state.calCollapsed && dy > 0 && topAtStart && L.scrollTop <= 0) { ty = null; setCollapsed(false); }
+  }, { passive: true });
+  V.addEventListener("touchend", () => { ty = null; }, { passive: true });
+  V.addEventListener("touchcancel", () => { ty = null; }, { passive: true });
+})();
+/* size the home view to exactly fill the screen between the tabs and the entry bar */
+function sizeHome() {
+  document.body.classList.toggle("is-home", state.tab === "home");
+  if (state.tab !== "home") return;
+  const v = $("#view-home"), top = v.getBoundingClientRect().top + window.scrollY, dock = document.querySelector(".dock").offsetHeight;
+  const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight || document.documentElement.clientHeight;
+  v.style.height = Math.max(vh - top - dock - 10, 240) + "px";
+}
+window.addEventListener("resize", sizeHome);
+if (window.visualViewport) window.visualViewport.addEventListener("resize", sizeHome);
+$("#todayBtn").onclick = () => { const t = new Date(); state.month = new Date(t.getFullYear(), t.getMonth(), 1); state.sel = todayStr(); renderHome(); renderPreview(); };
+
+const entry = $("#entry");
+entry.addEventListener("input", () => { pendingOverride = {}; entry.style.height = "auto"; entry.style.height = Math.min(entry.scrollHeight, 120) + "px"; renderPreview(); sizeHome(); });
+entry.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitEntry(); } });
+$("#preview").addEventListener("change", e => { const s = e.target.closest("[data-pv]"); if (s) { pendingOverride[+s.dataset.pv] = s.value; renderPreview(); } });
+$("#addBtn").onclick = submitEntry;
+async function submitEntry() {
+  if (state.readOnly || !entry.value.trim()) return;
+  renderPreview(); const batch = pending.slice(); if (!batch.length) return;
+  entry.value = ""; entry.style.height = ""; pendingOverride = {}; renderPreview();
+  let msg = "";
+  for (const p of batch) msg = await addParsed(p);
+  toast(msg); sweepBought();
+}
+async function addParsed(p) {
+  let msg = "";
+  {
+    const c = catById(p.cat);
+    if (c.kind === "shop" && !p.date) {
+      await dropStaleTrip(p.cat);
+      const trip = state.trips[p.cat];
+      await store.add({ title: p.title, cat: p.cat, date: null, pin: false, recur: null, priority: p.priority });
+      msg = `أُضيف إلى ${c.name}${trip ? " · " + (trip === todayStr() ? "اليوم" : fmtShort.format(parseYmd(trip))) : ""}`;
+    } else {
+      const pin = c.kind === "shop" && !!p.date;
+      const nid = await store.add({ title: p.title, cat: p.cat, date: p.date || (p.recur ? todayStr() : null), pin, recur: c.kind === "task" ? (p.recur || null) : null, priority: p.priority });
+      if (p.cat === "inbox") aiClassify({ id: nid, title: p.title });
+      msg = p.cat === "inbox" ? (aiModel ? "أُضيف · جارِ التصنيف…" : "أُضيف إلى الوارد") : `أُضيف إلى ${c.name}${pin ? " بتاريخ خاص" : ""}`;
+    }
+  }
+  return msg;
+}
+
+/* ===================== light / dark toggle (remembered on this device) ===================== */
+const ICON_MOON = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>`;
+const ICON_SUN = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>`;
+const isDark = () => { const a = document.documentElement.getAttribute("data-theme"); return a ? a === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
+function paintThemeBtn() { const b = $("#themeBtn"); const d = isDark(); b.innerHTML = d ? ICON_SUN : ICON_MOON; b.setAttribute("aria-label", d ? "الوضع الفاتح" : "الوضع الداكن"); }
+(() => { try { const t = localStorage.getItem("daftar-theme"); if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t); } catch (e) {} })();
+$("#themeBtn").onclick = () => { const next = isDark() ? "light" : "dark"; document.documentElement.setAttribute("data-theme", next); try { localStorage.setItem("daftar-theme", next); } catch (e) {} paintThemeBtn(); };
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paintThemeBtn);
+new MutationObserver(paintThemeBtn).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+paintThemeBtn();
+
+/* ===================== boot ===================== */
+const setTabsH = () => document.documentElement.style.setProperty("--tabs-h", document.querySelector("nav.tabs").offsetHeight + "px");
+setTabsH(); window.addEventListener("resize", setTabsH);
+document.getElementById("dow").innerHTML = ["أحد","إثنين","ثلاثاء","أربعاء","خميس","جمعة","سبت"].map(d => `<div class="dow">${d}</div>`).join("");
+render();
+/* =====================================================================
+   Firebase: sign-in, shared data, AI classification
+   Settings live in config.js (window.DAFTAR_CONFIG).
+   ===================================================================== */
+const CFG = window.DAFTAR_CONFIG || {};
+const FB = "https://www.gstatic.com/firebasejs/" + (CFG.sdkVersion || "13.1.0") + "/";
+let aiModel = null;
+
+function gate(msg, btn, onBtn, showOut) {
+  const g = $("#gate"); g.hidden = !msg; if (!msg) return;
+  $("#gateMsg").textContent = msg;
+  const b = $("#gateBtn"); b.hidden = !btn; if (btn) { b.textContent = btn; b.onclick = onBtn; }
+  $("#gateOut").hidden = !showOut;
+}
+
+(async () => {
+  if (!CFG.firebase || !CFG.firebase.apiKey || String(CFG.firebase.apiKey).startsWith("ضع")) {
+    gate("لم تُضبط إعدادات Firebase بعد. أكمل ملف config.js كما في دليل الإعداد."); return;
+  }
+  let app, A, S;
+  try {
+    const appMod = await import(FB + "firebase-app.js");
+    A = await import(FB + "firebase-auth.js");
+    S = await import(FB + "firebase-firestore.js");
+    app = appMod.initializeApp(CFG.firebase);
+  } catch (e) { gate("تعذّر تحميل التطبيق. تحقق من الاتصال ثم أعد فتح الصفحة."); return; }
+
+  // App Check protects the AI quota from use outside this site (required by Firebase AI Logic)
+  if (CFG.appCheckSiteKey) {
+    try { const AC = await import(FB + "firebase-app-check.js"); AC.initializeAppCheck(app, { provider: new AC.ReCaptchaEnterpriseProvider(CFG.appCheckSiteKey), isTokenAutoRefreshEnabled: true }); } catch (e) {}
+  }
+
+  // Firestore with an on-device cache: opens instantly, works offline, syncs when back online
+  let F;
+  try { F = S.initializeFirestore(app, { ignoreUndefinedProperties: true, localCache: S.persistentLocalCache({ tabManager: S.persistentMultipleTabManager() }) }); }
+  catch (e) { F = S.getFirestore(app); }
+
+  // small adapter with the same shape the app already uses
+  const snapDoc = s => ({ id: s.id, exists: s.exists(), data: () => s.data() });
+  const docApi = path => { const r = S.doc(F, path); return {
+    set: d => S.setDoc(r, d), update: d => S.updateDoc(r, d), merge: d => S.setDoc(r, d, { merge: true }),
+    delete: () => S.deleteDoc(r), onSnapshot: (n, e) => S.onSnapshot(r, s => n(snapDoc(s)), e) }; };
+  const itemsCol = S.collection(F, "items");
+  const openMap = new Map(), doneMap = new Map();
+  let doneFrom = null, unsubDone = null, unsubs = [];
+  const mergeItems = () => { const m = new Map(openMap); for (const [k, v] of doneMap) m.set(k, v); state.items = [...m.values()]; render(); };
+  const onErr = e => { if (e && e.code === "permission-denied") deny(); };
+  const api = {
+    doc: docApi,
+    collection: path => ({ doc: id => docApi(path + "/" + id) }),
+    // bought/done items are loaded only from the earliest day on screen, so a year of history isn't read on every open
+    ensureDoneFrom(ms) {
+      if (doneFrom !== null && ms >= doneFrom) return;
+      doneFrom = ms; if (unsubDone) unsubDone();
+      unsubDone = S.onSnapshot(S.query(itemsCol, S.where("doneAt", ">=", ms)), snap => {
+        doneMap.clear(); snap.forEach(d => { const v = d.data(); if (v.done) doneMap.set(d.id, { id: d.id, ...v }); }); mergeItems();
+      }, onErr);
+    },
+    async oldDone(cutoff) { const q = await S.getDocs(S.query(itemsCol, S.where("doneAt", "<", cutoff))); return q.docs.map(d => ({ id: d.id, ...d.data() })); },
+    async all() { const q = await S.getDocs(itemsCol); return q.docs.map(d => ({ id: d.id, ...d.data() })); },
+    async importAll(data) {
+      const writes = [];
+      for (const it of data.items || []) { const { id, ...rest } = it; if (id) writes.push([S.doc(F, "items/" + id), { doneAt: null, ...rest }]); }
+      if (Array.isArray(data.cats) && data.cats.length) writes.push([S.doc(F, "config/categories"), { list: data.cats }]);
+      if (data.trips) writes.push([S.doc(F, "config/trips"), data.trips]);
+      if (data.history) writes.push([S.doc(F, "history/recent"), { items: data.history }]);
+      for (let i = 0; i < writes.length; i += 400) { const b = S.writeBatch(F); for (const [r, v] of writes.slice(i, i + 400)) b.set(r, v); await b.commit(); }
+      return writes.length;
+    }
+  };
+
+  function stopData() { unsubs.forEach(u => u()); unsubs = []; if (unsubDone) unsubDone(); unsubDone = null; doneFrom = null; openMap.clear(); doneMap.clear(); db = null; }
+  function deny() {
+    const u = auth.currentUser; stopData();
+    gate(`الحساب ${u ? u.email : ""} غير مصرّح له باستخدام هذا الدفتر. اطلب من صاحب الدفتر إضافته.`, null, null, true);
+  }
+
+  const auth = A.getAuth(app);
+  const provider = new A.GoogleAuthProvider(); provider.setCustomParameters({ prompt: "select_account" });
+  const signIn = async () => {
+    try { await A.signInWithPopup(auth, provider); }
+    catch (e) { if (e && (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment")) A.signInWithRedirect(auth, provider); else if (e && e.code !== "auth/popup-closed-by-user" && e.code !== "auth/cancelled-popup-request") toast("تعذّر تسجيل الدخول. حاول مرة أخرى"); }
+  };
+  A.getRedirectResult(auth).catch(() => {});
+  $("#gateOut").onclick = () => A.signOut(auth);
+  window.daftarSignOut = () => { stopData(); A.signOut(auth); };
+  state.userEmail = "";
+
+  A.onAuthStateChanged(auth, async user => {
+    stopData();
+    if (!user) { gate("سجّل الدخول بحساب Google المضاف إلى قائمة الأسرة.", "تسجيل الدخول بـ Google", signIn); return; }
+    state.userEmail = user.email || "";
+    gate("جارِ فتح الدفتر…");
+    // the security rules decide who is family: a read that is refused means this account is not on the list
+    try { await S.getDoc(S.doc(F, "config/categories")); }
+    catch (e) { if (e && e.code === "permission-denied") return deny(); }
+    db = api; gate(null); setSync("db");
+    unsubs.push(S.onSnapshot(S.query(itemsCol, S.where("done", "==", false)), snap => {
+      openMap.clear(); snap.forEach(d => openMap.set(d.id, { id: d.id, ...d.data() })); mergeItems();
+    }, onErr));
+    unsubs.push(docApi("history/recent").onSnapshot(snap => { const h = snap.exists && snap.data().items; state.history = h && typeof h === "object" ? { ...h } : {}; if (entry.value) renderPreview(); }, onErr));
+    unsubs.push(docApi("config/trips").onSnapshot(snap => { state.trips = snap.exists ? { ...snap.data() } : {}; render(); }, onErr));
+    unsubs.push(docApi("config/categories").onSnapshot(snap => { const l = snap.exists && snap.data().list; state.cats = Array.isArray(l) && l.length ? l : DEFAULT_CATS; if (state.tab !== "cats") catDraft = null; render(); }, onErr));
+    api.ensureDoneFrom(addDays(new Date(), -40).getTime());
+    render(); sweepBought();
+    if (location.hash === "#voice") startVoiceFromLink();
+  });
+  addEventListener("online", () => setSync(state.mode)); addEventListener("offline", () => setSync(state.mode));
+
+  // Gemini through Firebase AI Logic: classifies what the local keyword engine could not
+  if (CFG.ai !== false) {
+    try {
+      const AI = await import(FB + "firebase-ai.js");
+      const ai = AI.getAI(app, { backend: new AI.GoogleAIBackend() });
+      aiModel = AI.getGenerativeModel(ai, { model: CFG.aiModel || "gemini-3.8-flash", generationConfig: { responseMimeType: "application/json", temperature: 0 } });
+    } catch (e) { aiModel = null; }
+  }
+})();
+
+/* ===================== AI classification (inbox items only) ===================== */
+async function aiClassify(it) {
+  if (!aiModel || !it || !it.id) return;
+  const list = state.cats.map(c => `- ${c.id}: ${c.name} (${c.kind === "shop" ? "مشتريات" : "مهام"}) — أمثلة: ${(c.kw || []).slice(0, 15).join("، ")}`).join("\n");
+  const prompt = `أنت تصنّف عنصراً أدخله فرد من أسرة سعودية في تطبيق للمهام والمشتريات المنزلية. قد يكون بالعامية أو فيه خطأ إملائي من الإملاء الصوتي.
+التصنيفات المتاحة:
+${list}
+
+العنصر: «${it.title}»
+
+أعد JSON فقط بهذا الشكل: {"cat": "معرّف التصنيف من القائمة، أو inbox إن لم تكن متأكداً", "title": "اسم العنصر مختصراً ومصححاً إملائياً، دون أفعال مثل اشتري أو جيب أو نحتاج"}`;
+  try {
+    const r = await aiModel.generateContent(prompt);
+    let txt = r.response.text().trim().replace(/^```(json)?/i, "").replace(/```$/, "");
+    const j = JSON.parse(txt), c = state.cats.find(x => x.id === j.cat);
+    if (!c) { toast("لم يتعرّف عليه التصنيف، فبقي في الوارد"); return; }
+    const title = typeof j.title === "string" && j.title.trim() && j.title.length <= 80 ? j.title.trim() : it.title;
+    const patch = { cat: c.id, title, aiCat: true };
+    if (c.kind === "shop") { patch.pin = false; patch.date = null; await dropStaleTrip(c.id, it.id); }
+    store.update(it.id, patch);
+    toast(`«${title}» ← ${c.name}`);
+  } catch (e) { /* quota, network or App Check: the item simply stays in the inbox */ }
+}
+
+/* ===================== voice input (browser speech recognition) ===================== */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, heard = "";
+const micBtn = $("#micBtn");
+micBtn.hidden = !SR;
+if (!SR) $("#entry").placeholder = "اكتب…";
+function setMic(on) { micBtn.classList.toggle("on", on); micBtn.setAttribute("aria-label", on ? "إيقاف الاستماع" : "إدخال صوتي"); }
+function listen() {
+  if (!SR || state.readOnly) return false;
+  if (rec) { rec.stop(); return true; }
+  heard = "";
+  try {
+    rec = new SR(); rec.lang = CFG.voiceLang || "ar-SA"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+    rec.onresult = e => { let t = ""; for (const r of e.results) t += r[0].transcript; entry.value = t; renderPreview(); sizeHome(); if (e.results[e.results.length - 1].isFinal) heard = t; };
+    rec.onerror = e => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") { $("#talk").hidden = false; toast("اسمح للمتصفح باستخدام الميكروفون، أو استخدم مايك الكيبورد"); }
+      else if (e.error !== "no-speech" && e.error !== "aborted") toast("تعذّر الاستماع. جرّب مايك الكيبورد");
+    };
+    rec.onend = () => { rec = null; setMic(false); if (heard.trim() && CFG.voiceAutoAdd !== false) submitEntry(); };
+    rec.start(); setMic(true); return true;
+  } catch (e) { rec = null; setMic(false); return false; }
+}
+micBtn.onclick = () => { $("#talk").hidden = true; listen(); };
+$("#talkBtn").onclick = () => { $("#talk").hidden = true; listen(); };
+$("#talk").addEventListener("click", e => { if (e.target.id === "talk") $("#talk").hidden = true; });
+/* the home-screen shortcut opens …/#voice: start listening right away, or show one big button where the browser needs a tap first */
+function startVoiceFromLink() {
+  history.replaceState(null, "", location.pathname + location.search);
+  state.tab = "home"; render();
+  if (!SR) { entry.focus(); return; }
+  if (!listen()) $("#talk").hidden = false;
+}
+
+/* ===================== backup / restore / account (categories tab) ===================== */
+function backupCard() {
+  return `<div class="card"><h2>الحساب والنسخ الاحتياطي</h2>
+    <p class="small muted" style="margin:6px 0 0">${state.userEmail ? "مسجّل باسم " + esc(state.userEmail) : ""}</p>
+    <div class="backup">
+      <button class="btn sec" data-act="export">تنزيل نسخة احتياطية</button>
+      <button class="btn sec" data-act="importPick" ${state.readOnly ? "disabled" : ""}>استيراد نسخة</button>
+      <span class="spacer"></span>
+      <button class="btn del" data-act="signout">تسجيل الخروج</button>
+    </div>
+    <div id="importConfirm" class="row" style="margin-top:10px" hidden></div>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
+  </div>`;
+}
+let importData = null;
+document.addEventListener("click", async e => {
+  const el = e.target.closest("[data-act]"); if (!el) return;
+  const act = el.dataset.act;
+  if (act === "signout") window.daftarSignOut && window.daftarSignOut();
+  if (act === "export" && db) {
+    const data = { app: "daftar-albait", exportedAt: new Date().toISOString(), items: await db.all(), cats: state.cats, trips: state.trips, history: state.history };
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: "application/json" }));
+    a.download = "daftar-albait-" + todayStr() + ".json"; document.body.appendChild(a); a.click(); a.remove();
+  }
+  if (act === "importPick") $("#importFile").click();
+  if (act === "importGo" && importData && db) {
+    $("#importConfirm").hidden = true;
+    try { const n = await db.importAll(importData); toast("تم الاستيراد (" + n + " سجل)"); } catch (err) { toast("تعذّر الاستيراد: " + (err && err.code || "")); }
+    importData = null;
+  }
+  if (act === "importCancel") { importData = null; $("#importConfirm").hidden = true; }
+});
+document.addEventListener("change", async e => {
+  if (e.target.id !== "importFile" || !e.target.files[0]) return;
+  try {
+    importData = JSON.parse(await e.target.files[0].text());
+    const n = (importData.items || []).length, box = $("#importConfirm");
+    box.innerHTML = `<span style="flex:1">استيراد ${n} عنصر مع التصنيفات والتواريخ والسجل؟ العناصر بنفس المعرّف ستُستبدل.</span><button class="btn sec" data-act="importCancel">إلغاء</button><button class="btn" data-act="importGo">استيراد</button>`;
+    box.hidden = false;
+  } catch (err) { toast("الملف غير صالح"); }
+  e.target.value = "";
+});
+
+</script>
