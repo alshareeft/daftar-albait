@@ -33,5 +33,6 @@ Arabic (RTL) household app: tasks + shopping lists, shared by a family, used mos
 ## Working rules
 - Write user-facing text in Arabic (MSA, short).
 - Test before pushing: `npm i playwright @fontsource/ibm-plex-sans-arabic && node dev/smoke-test.js` — runs the page in Chromium (`/opt/pw-browsers/chromium`, phone viewport 390×844) with Firebase routed to in-memory mocks (`dev/firebase-mocks/`): sign-in, add, AI inbox, buy, suggestions, export/import, access denied, `#voice` link. Must print `errors…: []`. Extend it for the flow you changed; add screenshots to judge layout.
+- Preview before pushing: `node dev/build-preview.js` builds `dev/preview.html` (app + Firebase mocks + sample data saved in the browser; not committed). Publish it as the owner's preview artifact (same URL each time: https://claude.ai/artifact/5VMz12awZ6DUpZebqctNne). The owner tests there and approves before anything is pushed to `main`. Export download and the mic don't work inside the artifact sandbox.
 - Commit messages: short, describe the user-visible change. Push to `main` only after testing.
 - Rollback: Cloudflare → Deployments → previous deployment → Rollback.
