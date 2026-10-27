@@ -37,7 +37,7 @@
 body{margin:0}
 [hidden]{display:none!important}
 img{max-width:100%}
-html,body{height:100%}
+html,body{height:100%;overscroll-behavior-y:none} /* no pull-to-refresh: a pull down on home unfolds the calendar instead */
 html{font-size:14.5px}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1rem;line-height:1.5;direction:rtl;-webkit-tap-highlight-color:transparent}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -808,11 +808,39 @@ function openTripSheet(cid) {
 }
 
 /* ===================== events ===================== */
+const TABS = ["home", "shop", "tasks", "inbox", "cats"];
+function goTab(t, from) {
+  state.tab = t; if (t !== "cats") catDraft = null; window.scrollTo(0, 0); render();
+  /* swipe feedback: the new tab slides in from the side the finger came from */
+  const v = $("#view-" + t);
+  if (from && v.animate && !matchMedia("(prefers-reduced-motion: reduce)").matches)
+    v.animate([{ transform: `translateX(${from * 28}px)`, opacity: .4 }, { transform: "none", opacity: 1 }], { duration: 200, easing: "cubic-bezier(.22,.8,.26,1)" });
+}
+/* swipe sideways to move to the neighbouring tab (RTL: finger to the right -> next tab on the left) */
+(() => {
+  let sx = null, sy = 0, st = 0;
+  const blocked = el => document.body.classList.contains("is-focus") || !$("#gate").hidden || $("#sheetHost").innerHTML.trim() ||
+    (el.closest && el.closest("input,textarea,select,.scrim,.talk,.dock,.sg"));
+  document.addEventListener("touchstart", e => {
+    sx = null; if (e.touches.length !== 1) return;
+    const t = e.touches[0], w = window.innerWidth;
+    if (t.clientX < 24 || t.clientX > w - 24 || blocked(e.target)) return;   // leave the screen edges to the phone's back gesture
+    sx = t.clientX; sy = t.clientY; st = Date.now();
+  }, { passive: true });
+  document.addEventListener("touchend", e => {
+    if (sx === null) return;
+    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy; sx = null;
+    if (Date.now() - st > 700 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
+    const i = TABS.indexOf(state.tab) + (dx > 0 ? 1 : -1);
+    if (i >= 0 && i < TABS.length) goTab(TABS[i], dx > 0 ? -1 : 1);
+  }, { passive: true });
+  document.addEventListener("touchcancel", () => { sx = null; }, { passive: true });
+})();
 document.addEventListener("click", async e => {
   const el = e.target.closest("[data-act],[data-tab],[data-day]");
   if (!el) return;
   if (el.classList.contains("scrim") && e.target !== el) return;
-  if (el.dataset.tab) { state.tab = el.dataset.tab; if (state.tab !== "cats") catDraft = null; window.scrollTo(0, 0); render(); return; }
+  if (el.dataset.tab) { goTab(el.dataset.tab); return; }
   if (el.dataset.day) { state.sel = el.dataset.day; const d = parseYmd(el.dataset.day); if (d.getMonth() !== state.month.getMonth()) state.month = new Date(d.getFullYear(), d.getMonth(), 1); renderHome(); renderPreview(); return; }
   const id = el.dataset.id, act = el.dataset.act;
   if (act === "toggle") {

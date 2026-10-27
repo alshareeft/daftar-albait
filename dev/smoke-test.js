@@ -51,6 +51,15 @@ async function setup(b, opts = {}) {
   await p.screenshot({ path: path.join(__dirname,'out-shop.png') });
   await p.click('nav.tabs [data-tab="home"]'); await p.waitForTimeout(250);
   await p.screenshot({ path: path.join(__dirname,'out-home.png') });
+  // 5b) sideways swipe -> neighbouring tab; no pull-to-refresh
+  const swipe = (x0, x1, sel = 'body', y = 600) => p.evaluate(([x0, x1, sel, y]) => {
+    const el = document.querySelector(sel), mk = x => new Touch({ identifier: 1, target: el, clientX: x, clientY: y });
+    el.dispatchEvent(new TouchEvent('touchstart', { touches: [mk(x0)], changedTouches: [mk(x0)], bubbles: true }));
+    el.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [mk(x1)], bubbles: true }));
+    return document.querySelector('nav.tabs [aria-selected="true"]').dataset.tab; }, [x0, x1, sel, y]);
+  const tabSeq = [await swipe(100, 260, '#view-home'), await swipe(100, 260, '#view-shop'), await swipe(300, 120, '#view-tasks'), await swipe(300, 120, '#view-shop'), await swipe(300, 120, '#view-home')];
+  console.log('swipe tabs:', tabSeq.join(' > '), '| edge ignored:', await swipe(8, 200, '#view-home'), '| entry ignored:', await swipe(100, 260, '#entry'), '| short ignored:', await swipe(150, 190, '#view-home'));
+  console.log('overscroll:', await p.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY + '/' + getComputedStyle(document.body).overscrollBehaviorY));
   console.log('mic visible:', await p.evaluate(() => !document.querySelector('#micBtn').hidden));
   console.log('errors1:', p.errs);
   await ctx.close();
