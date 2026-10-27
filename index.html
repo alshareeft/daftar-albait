@@ -461,10 +461,13 @@ function tripFor(catId, exceptId) {
   const active = state.items.some(x => x.cat === catId && x.id !== exceptId && !x.done && !x.pin);
   return t && active ? t : null;
 }
-/* a category date that has passed with nothing left to buy is stale: drop it so new items start undated */
+/* a store date is stale once it has passed, or once nothing is left following it (all bought, deleted or moved):
+   drop it so the next item added there starts undated. An item that already follows this date keeps it (e.g. a rename). */
 async function dropStaleTrip(catId, exceptId) {
-  const t = state.trips[catId];
-  if (t && t < todayStr()) await store.setTrip(catId, null);
+  const t = state.trips[catId]; if (!t) return;
+  const prev = exceptId && state.items.find(x => x.id === exceptId);
+  if (prev && prev.cat === catId && !prev.done && !prev.pin) return;
+  if (t < todayStr() || !tripFor(catId, exceptId)) await store.setTrip(catId, null);
 }
 /* the date a new, un-dated item in this category would get (or null) */
 function plannedTrip(catId) {
@@ -657,16 +660,15 @@ document.addEventListener("visibilitychange", () => { if (state.focusCat && docu
 document.addEventListener("keydown", e => { if (e.key === "Escape" && state.focusCat) setFocus(null); });
 
 function renderTasks() {
+  /* the tab itself is the category: open tasks are one flat list, each with its own date */
   const tasks = state.items.filter(it => kindOf(it) === "task");
   const open = sortItems(tasks.filter(it => !it.done)), done = tasks.filter(it => it.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)).slice(0, 30);
-  const taskCats = state.cats.filter(c => c.kind === "task");
+  const many = state.cats.filter(c => c.kind === "task").length > 1;   // name the category only if there is more than one
   let html = "";
-  for (const c of taskCats) {
-    const list = open.filter(it => it.cat === c.id);
-    html += `<div class="card"><div class="group-h"><span class="sw" style="background:${c.color}"></span><h2>${esc(c.name)}</h2><span class="spacer"></span><span class="small muted">${list.length}</span></div>
-      <div class="list">${list.length ? list.map(it => itemRow(it)).join("") : `<div class="empty">لا مهام مفتوحة.</div>`}</div></div>`;
-  }
-  if (done.length) html += `<div class="card"><details><summary>المنجزة مؤخراً (${done.length})</summary><div class="list">${done.map(it => itemRow(it, { showCat: taskCats.length > 1 })).join("")}</div></details></div>`;
+  if (open.length) html += `<div class="row"><span class="muted small">المهام المفتوحة: ${open.length}</span></div>
+    <div class="card"><div class="list">${open.map(it => itemRow(it, { showCat: many })).join("")}</div></div>`;
+  else html += `<div class="card empty">لا مهام مفتوحة. اكتب أو قل المهمة، مثلاً «نظف فلتر المكيف».</div>`;
+  if (done.length) html += `<div class="card"><details><summary>المنجزة مؤخراً (${done.length})</summary><div class="list">${done.map(it => itemRow(it, { showCat: many })).join("")}</div></details></div>`;
   $("#view-tasks").innerHTML = html;
 }
 

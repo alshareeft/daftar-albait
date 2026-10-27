@@ -60,6 +60,23 @@ async function setup(b, opts = {}) {
   const tabSeq = [await swipe(100, 260, '#view-home'), await swipe(100, 260, '#view-shop'), await swipe(300, 120, '#view-tasks'), await swipe(300, 120, '#view-shop'), await swipe(300, 120, '#view-home')];
   console.log('swipe tabs:', tabSeq.join(' > '), '| edge ignored:', await swipe(8, 200, '#view-home'), '| entry ignored:', await swipe(100, 260, '#entry'), '| short ignored:', await swipe(150, 190, '#view-home'));
   console.log('overscroll:', await p.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY + '/' + getComputedStyle(document.body).overscrollBehaviorY));
+  // 5c) store date: once nothing follows it, a new item starts undated; a rename of the only item keeps the date
+  const tripCase = await p.evaluate(async () => {
+    const shopIds = () => [...window.__DB].filter(([k, v]) => k.startsWith('items/') && v.cat === 'super' && !v.done).map(([k]) => k);
+    for (const k of shopIds()) window.__DB.delete(k);
+    const d = new Date(Date.now() + 3 * 864e5), day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    window.__DB.set('config/trips', { super: day }); window.__DB.set('items/x1', { title: 'تمر', cat: 'super', date: null, pin: false, done: false, doneAt: null, priority: 'normal', recur: null, createdAt: 1 });
+    return day; });
+  await p.click('nav.tabs [data-tab="shop"]'); await p.waitForTimeout(300);   // listeners fire on the next write; force one
+  await p.fill('#entry', 'خبز'); await p.press('#entry', 'Enter'); await p.waitForTimeout(400);
+  console.log('trip kept while items follow it:', JSON.stringify(await p.evaluate(() => window.__DB.get('config/trips'))), '| toast:', await p.textContent('#toast'));
+  await p.click('#view-shop .item .chk >> nth=0'); await p.waitForTimeout(300); await p.click('#view-shop .item .chk >> nth=0'); await p.waitForTimeout(400);
+  await p.fill('#entry', 'حليب'); await p.press('#entry', 'Enter'); await p.waitForTimeout(400);
+  console.log('after all bought, new item:', await p.textContent('#toast'), '| trips:', JSON.stringify(await p.evaluate(() => window.__DB.get('config/trips'))));
+  // 5d) tasks tab: one flat list, no category header
+  await p.click('nav.tabs [data-tab="tasks"]'); await p.waitForTimeout(250);
+  console.log('tasks:', await p.evaluate(() => ({ headers: document.querySelectorAll('#view-tasks .group-h').length, rows: document.querySelectorAll('#view-tasks .card:not(:has(details)) .item').length, label: document.querySelector('#view-tasks .row')?.textContent })));
+  await p.screenshot({ path: path.join(__dirname,'out-tasks.png') });
   console.log('mic visible:', await p.evaluate(() => !document.querySelector('#micBtn').hidden));
   console.log('errors1:', p.errs);
   await ctx.close();
