@@ -100,6 +100,50 @@ async function setup(b, opts = {}) {
   console.log('mic visible:', await p.evaluate(() => !document.querySelector('#micBtn').hidden));
   console.log('errors1:', p.errs);
   await ctx.close();
+  // 6) events: create, add while open (tagged, still in its store), add a date, link an existing item, untag, end
+  ({ ctx, p } = await setup(b));
+  await p.goto('https://app.test/'); await p.waitForTimeout(300); await p.click('#gateBtn'); await p.waitForTimeout(500);
+  for (const t of ['حليب', 'اتصل بالسباك بكرة']) { await p.fill('#entry', t); await p.press('#entry', 'Enter'); await p.waitForTimeout(250); }
+  await p.click('nav.tabs [data-tab="events"]'); await p.waitForTimeout(200);
+  await p.screenshot({ path: path.join(__dirname,'out-events-empty.png') });
+  await p.click('[data-act="evNew"]'); await p.waitForTimeout(150);
+  await p.fill('#ev-name', 'طلعة الشوي'); await p.click('.emogrid [data-e="🍖"]');
+  await p.screenshot({ path: path.join(__dirname,'out-event-sheet.png') });
+  await p.click('[data-act="evSave"]'); await p.waitForTimeout(300);
+  console.log('event created:', await p.textContent('#toast'), '| open:', await p.textContent('#view-events h2'), '| placeholder:', await p.getAttribute('#entry', 'placeholder'));
+  for (const t of ['فحم', 'لحم غنم', 'دلة قهوة أمازون السبت', 'احجز المكان']) { await p.fill('#entry', t); await p.press('#entry', 'Enter'); await p.waitForTimeout(300); }
+  console.log('add in event:', await p.textContent('#toast'));
+  console.log('tagged:', JSON.stringify(await p.evaluate(() => [...window.__DB].filter(([k, v]) => k.startsWith('items/') && v.ev).map(([k, v]) => v.title + ':' + v.cat))));
+  const addBtns = await p.evaluate(() => [...document.querySelectorAll('#view-events .adddate')].map(b => b.closest('.item').querySelector('.t').textContent));
+  console.log('add-date buttons:', addBtns.join(','));
+  await p.click('#view-events .item:has-text("لحم غنم") .adddate'); await p.waitForTimeout(150);
+  await p.fill('#ed-date', '2026-12-10'); await p.click('[data-act="evDateSave"]'); await p.waitForTimeout(300);
+  console.log('meat date:', JSON.stringify(await p.evaluate(() => { const v = [...window.__DB.values()].find(v => v.title === 'لحم غنم'); return [v.date, v.pin, v.cat]; })));
+  await p.click('[data-act="evLink"]'); await p.waitForTimeout(150);
+  await p.check('.linklist label:has-text("حليب") input'); await p.click('[data-act="evLinkSave"]'); await p.waitForTimeout(300);
+  console.log('linked:', await p.textContent('#toast'), '| milk ev:', await p.evaluate(() => !![...window.__DB.values()].find(v => v.title === 'حليب').ev));
+  await p.screenshot({ path: path.join(__dirname,'out-event-open.png'), fullPage: true });
+  console.log('badge events:', await p.textContent('#badge-events'));
+  // still in its store, with the event pill
+  await p.click('nav.tabs [data-tab="shop"]'); await p.waitForTimeout(250);
+  console.log('shop shows event pill:', await p.evaluate(() => [...document.querySelectorAll('#view-shop .item')].filter(x => x.textContent.includes('🍖')).map(x => x.querySelector('.t').textContent).join(',')),
+    '| placeholder:', await p.getAttribute('#entry', 'placeholder'));
+  await p.fill('#entry', 'بيض'); await p.press('#entry', 'Enter'); await p.waitForTimeout(300);
+  console.log('outside event not tagged:', await p.evaluate(() => !([...window.__DB.values()].find(v => v.title === 'بيض') || {}).ev));
+  // untag from the edit sheet
+  await p.click('#view-shop .item .txt:has-text("دلة قهوة")'); await p.waitForTimeout(150);
+  await p.selectOption('#e-ev', ''); await p.click('[data-act="saveSheet"]'); await p.waitForTimeout(300);
+  console.log('untagged:', await p.evaluate(() => [...window.__DB.values()].find(v => v.title === 'دلة قهوة أمازون').ev));
+  // list + end
+  await p.click('nav.tabs [data-tab="events"]'); await p.waitForTimeout(200);
+  await p.click('[data-act="evBack"]'); await p.waitForTimeout(200);
+  await p.screenshot({ path: path.join(__dirname,'out-events-list.png') });
+  console.log('list card:', (await p.textContent('.evcard')).replace(/\s+/g, ' ').trim());
+  await p.click('.evcard'); await p.waitForTimeout(200);
+  await p.click('[data-act="evEnd"]'); await p.waitForTimeout(100); await p.click('[data-act="evEndGo"]'); await p.waitForTimeout(400);
+  console.log('ended:', await p.textContent('#toast'), '| events:', JSON.stringify(await p.evaluate(() => window.__DB.get('config/events'))), '| tags left:', await p.evaluate(() => [...window.__DB.values()].filter(v => v.ev).length), '| items kept:', await p.evaluate(() => [...window.__DB.keys()].filter(k => k.startsWith('items/')).length));
+  console.log('errors1c:', p.errs);
+  await ctx.close();
   // 6a) older data: a pharmacy list date moves onto its items, then is removed
   ({ ctx, p } = await setup(b, { init: () => { const d = new Date(Date.now() + 2 * 864e5), day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); window.__DB = new Map([
     ['items/m1', { title: 'بنادول', cat: 'pharma', date: null, pin: false, done: false, doneAt: null, priority: 'normal', recur: null, createdAt: 1 }],

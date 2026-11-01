@@ -23,7 +23,7 @@ for (const f of fs.readdirSync(MOCK)) {
 const mockScript = `<script>
 window.DAFTAR_CONFIG = { firebase: { apiKey: "preview", authDomain: "x", projectId: "x", appId: "x" }, appCheckSiteKey: "", ai: false, voiceLang: "ar-SA", voiceAutoAdd: true, sdkVersion: "13.1.0" };
 (() => {
-  const KEY = "daftar-preview-db";
+  const KEY = "daftar-preview-db-2";
   const pad = n => String(n).padStart(2, "0");
   const day = k => { const d = new Date(); d.setDate(d.getDate() + k); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
   const now = Date.now(); let n = 0;
@@ -38,9 +38,12 @@ window.DAFTAR_CONFIG = { firebase: { apiKey: "preview", authDomain: "x", project
     it("نظف فلتر المكيف", "tasks", { date: day(2), recur: { n: 1, unit: "month" } }),
     it("ادفع فاتورة الكهرباء", "tasks", { date: day(6) }),
     it("رتب المخزن", "tasks"),
+    it("فحم", "tools", { ev: "ev1" }), it("لحم غنم", "super", { ev: "ev1" }), it("كاسات ورق", "super", { ev: "ev1" }),
+    it("دلة قهوة", "online", { ev: "ev1", date: day(2) }), it("احجز المكان", "tasks", { ev: "ev1", date: day(3) }),
     it("شي للبيت", "inbox"), it("هدية عيد ميلاد", "inbox"),
     it("قهوة", "super", { done: true, doneAt: now - 86400000 }),
     ["config/trips", { super: day(1) }],
+    ["config/events", { list: [{ id: "ev1", name: "طلعة الشوي", emoji: "🍖", createdAt: now }] }],
     ["history/recent", { items: { "قهوه": { t: "قهوة", c: "super", n: 3, d: day(-1) }, "حليب": { t: "حليب", c: "super", n: 5, d: day(-3) }, "خبز": { t: "خبز", c: "super", n: 4, d: day(-3) } } }]
   ]);
   let db; try { const s = localStorage.getItem(KEY); if (s) db = new Map(JSON.parse(s)); } catch (e) {}

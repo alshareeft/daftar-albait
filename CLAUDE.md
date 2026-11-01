@@ -12,19 +12,22 @@ Arabic (RTL) household app: tasks + shopping lists, shared by a family, used mos
 - `config.js` holds the owner's Firebase config. **Never overwrite or reformat it** unless explicitly asked.
 
 ## Data model (Firestore)
-- `items/{id}`: `{title, cat, date|null, pin, done, doneAt|null, priority:"normal"|"urgent", recur:{n,unit}|null, createdAt, aiCat?}`
+- `items/{id}`: `{title, cat, date|null, pin, done, doneAt|null, priority:"normal"|"urgent", recur:{n,unit}|null, createdAt, aiCat?, ev?}`
   - Only the supermarket (`super`, see `usesTrip`) has one shared list date in `config/trips`; its items follow it unless `pin:true` (own date). The date is dropped once nothing follows it, so the next item starts undated.
   - Every other shop category dates each item (`date`, `pin:false`); no list date. Old non-super trips are moved onto their items once (`migrateTrips`).
   - A shop date in the past is ignored → remaining items become undated (`effDate`).
   - Bought shop items stay on the calendar on the day bought (`doneAt`) for 365 days, then are swept.
 - `config/categories`: `{list:[{id,name,kind:"shop"|"task",color,kw:[]}]}` (absent → `DEFAULT_CATS` in code).
 - `config/trips`: `{<catId>: "YYYY-MM-DD"}`.
+- `config/events`: `{list:[{id,name,emoji,createdAt}]}` — المناسبات. An event is a tag (`item.ev`), never a category: tagged items stay in their store/tasks as usual. Adding from the dock while an event is open tags the new item. Ending an event deletes it and clears `ev` on its items.
 - `history/recent`: `{items:{<normalizedName>:{t,c,n,d}}}` — purchase history for entry suggestions (365 days). Written with merge.
 - Loading: open items (`done==false`) live; done items only from the earliest visible calendar day (`ensureDoneFrom`) to save free-tier reads.
 
 ## UX decisions already made by the owner (keep them)
-- Tabs order: الرئيسية، المشتريات، المهام، الوارد، التصنيفات. Badge counts on tabs. Swipe sideways switches tabs; pull-to-refresh is off.
+- Tabs order: الرئيسية، المشتريات، المهام، المناسبات، الوارد، التصنيفات. Badge counts on tabs. Swipe sideways switches tabs; pull-to-refresh is off.
 - Tasks tab: one flat list (no category grouping); each task has its own date.
+- Priority `"urgent"` is labelled «مهم» in the UI (value unchanged).
+- Events tab: list of events (emoji + name + progress) → event view grouped by category, items show their dates as in shopping; undated items get a «+ تاريخ» button; «إضافة عناصر موجودة» links open items; event picker in the item edit sheet.
 - No auto-splitting of entries: one entry = one item.
 - No date is auto-assigned on entry except the store's current date, or a date the user spoke/typed.
 - Home: calendar (arrows: left = next month, right = previous), shrinks to one week with an animation when swiping up / scrolling the list; day list grouped by category, collapsible; full-screen focus mode for "super" (supermarket) only.

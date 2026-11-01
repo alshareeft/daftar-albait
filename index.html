@@ -57,7 +57,7 @@ header.top .dates{flex:1;min-width:0}
 .sync.on i{background:#22a06b}
 .sync.local i{background:var(--urgent)}
 
-nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);margin-top:12px;padding-block:8px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);margin-top:12px;padding-block:8px;display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
 nav.tabs button{border:0;background:var(--sunken);border-radius:10px;padding:9px 4px;font-size:.88rem;font-weight:500;position:relative;min-width:0}
 nav.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
 .badge{position:absolute;top:-8px;left:-3px;box-shadow:0 0 0 2px var(--bg);min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--urgent);color:#fff;font-size:.72rem;line-height:20px;font-variant-numeric:tabular-nums}
@@ -162,6 +162,27 @@ body.is-focus{overflow:hidden}
 .cats-quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .cq{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:.82rem;display:inline-flex;align-items:center;gap:6px}
 .cq .dot{width:8px;height:8px}
+/* events: a tag on items that keeps them in their own category */
+.evlist{display:flex;flex-direction:column;gap:10px}
+.evcard{display:flex;align-items:center;gap:12px;width:100%;text-align:right;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;color:var(--ink)}
+.emo{font-size:1.6rem;line-height:1;width:2.6rem;height:2.6rem;display:grid;place-items:center;border-radius:12px;background:var(--sunken);flex:none}
+.evcard .evtx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.evcard b{font-weight:600;overflow-wrap:anywhere}
+.evcard .chev{transform:rotate(90deg);color:var(--muted)}
+.evbar{height:4px;border-radius:2px;background:var(--sunken);overflow:hidden;margin-top:4px}
+.evbar i{display:block;height:100%;background:var(--accent);border-radius:2px}
+.evhead{display:flex;align-items:center;gap:10px}
+.evhead h2{flex:1;min-width:0;font-family:var(--f-display);font-weight:600;font-size:1.15rem;margin:0;overflow-wrap:anywhere}
+.evhint{margin:0;color:var(--muted);font-size:.85rem}
+.adddate{flex:none;border:1px dashed var(--line);background:transparent;border-radius:999px;padding:4px 10px;font-size:.8rem;color:var(--accent)}
+.emogrid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.emogrid button{font-size:1.3rem;line-height:1;aspect-ratio:1;max-width:100%;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:0}
+.emogrid button.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.linklist{display:flex;flex-direction:column;max-height:50vh;overflow:auto}
+.linklist label{display:flex;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid var(--line)}
+.linklist label:first-child{border-top:0}
+.linklist input{width:20px;height:20px;flex:none;accent-color:var(--accent)}
+.linklist .lt{flex:1;min-width:0;overflow-wrap:anywhere}
 details summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding-top:6px}
 
 /* dock */
@@ -203,7 +224,7 @@ details summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding-top:6
 .catrow input[type=text],.catrow select,.catrow textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 8px;width:100%;min-width:0}
 .catrow textarea{font-size:.82rem;min-height:56px}
 @media (prefers-reduced-motion: no-preference){.day,.chk,nav.tabs button{transition:background .15s, box-shadow .15s}}
-@media (max-width:420px){nav.tabs button{font-size:.8rem}.brand{font-size:1.45rem}}
+@media (max-width:420px){nav.tabs button{font-size:.76rem;padding-inline:2px}.brand{font-size:1.45rem}}
 /* sign-in gate */
 .gate{position:fixed;inset:0;z-index:70;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px 16px}
 .gate .box{max-width:380px;width:100%;display:flex;flex-direction:column;gap:14px;text-align:center}
@@ -234,6 +255,7 @@ details summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding-top:6
     <button role="tab" data-tab="home" aria-selected="true">الرئيسية<span class="badge" id="badge-home" hidden>0</span></button>
     <button role="tab" data-tab="shop" aria-selected="false">المشتريات<span class="badge" id="badge-shop" hidden>0</span></button>
     <button role="tab" data-tab="tasks" aria-selected="false">المهام<span class="badge" id="badge-tasks" hidden>0</span></button>
+    <button role="tab" data-tab="events" aria-selected="false">المناسبات<span class="badge" id="badge-events" hidden>0</span></button>
     <button role="tab" data-tab="inbox" aria-selected="false">الوارد<span class="badge" id="badge-inbox" hidden>0</span></button>
     <button role="tab" data-tab="cats" aria-selected="false">التصنيفات</button>
   </nav>
@@ -256,6 +278,7 @@ details summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding-top:6
   </section>
 
   <section class="view" id="view-tasks" hidden></section>
+  <section class="view" id="view-events" hidden></section>
   <section class="view" id="view-shop" hidden></section>
   <section class="view" id="view-inbox" hidden></section>
   <section class="view" id="view-cats" hidden></section>
@@ -549,6 +572,11 @@ const store = {
     if (db) db.doc("config/trips").set(next).catch(fail);
     render();
   },
+  async saveEvents(list) {
+    state.events = list;
+    if (db) db.doc("config/events").set({ list }).catch(fail);
+    render();
+  },
   async saveCats(list) {
     state.cats = list;
     if (db) db.doc("config/categories").set({ list }).catch(fail);
@@ -593,7 +621,9 @@ function itemRow(it, opts = {}) {
   const c = catById(it.cat); const done = !!it.done;
   const meta = [];
   if (opts.showCat) meta.push(`<span class="pill"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</span>`);
-  if (it.priority === "urgent") meta.push(`<span class="pill urgent">عاجل</span>`);
+  if (it.priority === "urgent") meta.push(`<span class="pill urgent">مهم</span>`);
+  const ev = !opts.evView && it.ev && evById(it.ev);
+  if (ev) meta.push(`<span class="pill">${esc(ev.emoji)} ${esc(ev.name)}</span>`);
   const ed = effDate(it);
   if (ed && opts.showDate !== false) { const late = !done && ed < todayStr(); meta.push(`<span${late ? ' style="color:var(--urgent);font-weight:600"' : ""}>${it.pin && usesTrip(it.cat) ? "تاريخ خاص · " : ""}${ed === todayStr() ? "اليوم" : fmtShort.format(parseYmd(ed))}${late ? " · متأخرة" : ""}</span>`); }
   if (it.recur && kindOf(it) === "task") meta.push(`<span>↻ ${recurLabel(it.recur)}</span>`);
@@ -601,6 +631,7 @@ function itemRow(it, opts = {}) {
   return `<div class="item${done ? " done" : ""}" style="--c:${c.color}">
     <button class="chk${done ? " on" : ""}" data-act="toggle" data-id="${it.id}" aria-label="${done ? "إلغاء الإنجاز" : "إنجاز"}" ${state.readOnly || opts.proj ? "disabled" : ""}>${done ? "✓" : ""}</button>
     <button class="txt" data-act="edit" data-id="${it.id}"><span class="t">${esc(it.title)}</span>${meta.length ? `<span class="meta">${meta.join("")}</span>` : ""}</button>
+    ${opts.evView && !done && !ed && !state.readOnly ? `<button class="adddate" data-act="evDate" data-id="${it.id}">+ تاريخ</button>` : ""}
   </div>`;
 }
 const sortItems = arr => arr.slice().sort((a, b) => (a.done - b.done) || ((b.priority === "urgent") - (a.priority === "urgent")) || String(effDate(a) || "9").localeCompare(String(effDate(b) || "9")) || (a.createdAt || 0) - (b.createdAt || 0));
@@ -693,6 +724,80 @@ function renderTasks() {
   $("#view-tasks").innerHTML = html;
 }
 
+/* ===================== events (المناسبات) =====================
+   An event is a tag on items: each item keeps its own category (and shows in its store as usual) and also lists here. */
+state.events = []; state.evOpen = null;
+const evById = id => state.events.find(e => e.id === id);
+const curEv = () => state.tab === "events" && state.evOpen && evById(state.evOpen) ? state.evOpen : null;
+const EMOJIS = ["🍖","🔥","⛺","🏕️","🌴","🏖️","🎉","🎂","🎁","🎈","🌙","🕌","🍽️","☕","🧺","🛒","🏠","🛠️","🚗","✈️","🧳","🎓","💍","👶"];
+const BACK = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+function renderEvents() {
+  const V = $("#view-events"), ro = state.readOnly;
+  const ev = state.evOpen && evById(state.evOpen);
+  if (!ev) {
+    state.evOpen = null;
+    let html = `<div class="row"><span class="muted small">${state.events.length ? "المناسبات: " + state.events.length : ""}</span><span class="spacer"></span><button class="btn" data-act="evNew" ${ro ? "disabled" : ""}>مناسبة جديدة</button></div>`;
+    if (!state.events.length) html += `<div class="card empty">لا مناسبات بعد. أنشئ مناسبة مثل «طلعة الشوي» واجمع فيها ما تحتاجه من المتاجر المختلفة. تبقى العناصر في تصنيفاتها كالمعتاد.</div>`;
+    else html += `<div class="evlist">${state.events.map(e => {
+      const all = state.items.filter(it => it.ev === e.id), left = all.filter(it => !it.done).length, n = all.length;
+      return `<button class="evcard" data-act="evOpen" data-ev="${e.id}"><span class="emo">${esc(e.emoji)}</span><span class="evtx"><b>${esc(e.name)}</b>
+        <span class="small muted">${n ? (left ? "متبقٍ " + left + " من " + n : "اكتملت كل العناصر") : "لا عناصر بعد"}</span>${n ? `<span class="evbar"><i style="width:${Math.round((n - left) / n * 100)}%"></i></span>` : ""}</span>${chev}</button>`; }).join("")}</div>`;
+    V.innerHTML = html; return;
+  }
+  const all = state.items.filter(it => it.ev === ev.id), open = all.filter(it => !it.done), done = all.filter(it => it.done);
+  let html = `<div class="card"><div class="evhead"><button class="iconbtn sm" data-act="evBack" aria-label="رجوع إلى المناسبات">${BACK}</button><span class="emo">${esc(ev.emoji)}</span><h2>${esc(ev.name)}</h2>
+      <button class="ghost" data-act="evEdit" ${ro ? "disabled" : ""}>تعديل</button></div>
+    <p class="evhint" style="margin-top:10px">ما تكتبه في الشريط بالأسفل يُضاف إلى هذه المناسبة وإلى تصنيفه في المشتريات أو المهام.</p>
+    <div class="row" style="margin-top:10px"><span class="small muted">${all.length ? "تم " + done.length + " من " + all.length : ""}</span><span class="spacer"></span><button class="ghost" data-act="evLink" ${ro ? "disabled" : ""}>إضافة عناصر موجودة</button></div></div>`;
+  const groups = [...state.cats, INBOX].map(c => ({ c, list: sortItems(open.filter(it => it.cat === c.id)) })).filter(g => g.list.length);
+  for (const { c, list } of groups) html += `<div class="card"><div class="group-h"><span class="sw" style="background:${c.color}"></span><h2>${esc(c.name)}</h2><span class="spacer"></span><span class="small muted">${list.length}</span></div>
+      <div class="list">${list.map(it => itemRow(it, { evView: true })).join("")}</div></div>`;
+  if (!open.length) html += `<div class="card empty">${all.length ? "اكتملت كل عناصر المناسبة." : "لا عناصر بعد. اكتب ما تحتاجه في الشريط بالأسفل، أو أضف عناصر موجودة."}</div>`;
+  if (done.length) html += `<div class="card"><details><summary>تم (${done.length})</summary><div class="list">${done.map(it => itemRow(it, { evView: true, showCat: true })).join("")}</div></details></div>`;
+  html += `<div class="row"><button class="btn del" data-act="evEnd" ${ro ? "disabled" : ""}>إنهاء المناسبة</button></div><div class="card" id="evEndBox" hidden></div>`;
+  V.innerHTML = html;
+}
+function openEventSheet(id) {
+  const ev = id ? evById(id) : null, emo = ev ? ev.emoji : "";
+  $("#sheetHost").innerHTML = `<div class="scrim" data-act="closeSheet"><div class="sheet" role="dialog" aria-label="${ev ? "تعديل المناسبة" : "مناسبة جديدة"}">
+    <h2>${ev ? "تعديل المناسبة" : "مناسبة جديدة"}</h2>
+    <div class="field"><label for="ev-name">الاسم</label><input id="ev-name" value="${ev ? esc(ev.name) : ""}" placeholder="مثلاً: طلعة الشوي" maxlength="40"></div>
+    <div class="field"><label for="ev-emo">الإيموجي</label>
+      <div class="emogrid">${EMOJIS.map(e => `<button type="button" data-act="evEmo" data-e="${e}" class="${e === emo ? "on" : ""}">${e}</button>`).join("")}</div>
+      <input id="ev-emo" value="${esc(emo)}" placeholder="أو اكتب أي إيموجي من لوحة المفاتيح" maxlength="16"></div>
+    <div class="row"><span class="spacer"></span><button class="btn sec" data-act="closeSheet">إلغاء</button><button class="btn" data-act="evSave" data-ev="${id || ""}">${ev ? "حفظ" : "إنشاء"}</button></div>
+  </div></div>`;
+  $("#ev-emo").addEventListener("input", () => { const v = $("#ev-emo").value; document.querySelectorAll(".emogrid button").forEach(b => b.classList.toggle("on", b.dataset.e === v)); });
+  if (!ev) $("#ev-name").focus();
+}
+function firstGrapheme(v) {
+  v = String(v || "").trim(); if (!v) return "";
+  try { if (Intl.Segmenter) return [...new Intl.Segmenter().segment(v)][0].segment; } catch (e) {}
+  return [...v][0];
+}
+function openEvDateSheet(id) {
+  const it = state.items.find(x => x.id === id); if (!it) return;
+  $("#sheetHost").innerHTML = `<div class="scrim" data-act="closeSheet"><div class="sheet" role="dialog" aria-label="تاريخ ${esc(it.title)}">
+    <h2>تاريخ «${esc(it.title)}»</h2>
+    <p class="small muted" style="margin:0">يظهر التاريخ في المناسبة وفي ${esc(catById(it.cat).name)}${usesTrip(it.cat) ? "، ولا يتغيّر مع تاريخ قائمة السوبرماركت" : ""}.</p>
+    <div class="field"><label for="ed-date">التاريخ</label><input id="ed-date" type="date" value="${todayStr()}"></div>
+    <div class="row"><span class="spacer"></span><button class="btn sec" data-act="closeSheet">إلغاء</button><button class="btn" data-act="evDateSave" data-id="${id}">حفظ</button></div>
+  </div></div>`;
+}
+function openLinkSheet() {
+  const ev = evById(state.evOpen); if (!ev) return;
+  const cands = state.items.filter(it => !it.done && it.ev !== ev.id && it.cat !== "inbox")
+    .sort((a, b) => state.cats.findIndex(c => c.id === a.cat) - state.cats.findIndex(c => c.id === b.cat) || String(a.title).localeCompare(String(b.title), "ar"));
+  $("#sheetHost").innerHTML = `<div class="scrim" data-act="closeSheet"><div class="sheet" role="dialog" aria-label="إضافة عناصر موجودة">
+    <h2>إضافة إلى ${esc(ev.emoji)} ${esc(ev.name)}</h2>
+    <p class="small muted" style="margin:0">اختر من العناصر المفتوحة. تبقى في تصنيفاتها${state.events.length > 1 ? "، وتنتقل من مناسبتها السابقة إن كانت في مناسبة أخرى" : ""}.</p>
+    ${cands.length ? `<div class="linklist">${cands.map(it => { const c = catById(it.cat), o = it.ev && evById(it.ev);
+      return `<label><input type="checkbox" value="${it.id}"><span class="dot" style="background:${c.color}"></span><span class="lt">${esc(it.title)} <span class="small muted">· ${esc(c.name)}${o ? " · " + esc(o.emoji) : ""}</span></span></label>`; }).join("")}</div>`
+      : `<div class="empty">لا عناصر مفتوحة أخرى.</div>`}
+    <div class="row"><span class="spacer"></span><button class="btn sec" data-act="closeSheet">إلغاء</button>${cands.length ? `<button class="btn" data-act="evLinkSave">إضافة</button>` : ""}</div>
+  </div></div>`;
+}
+
 function renderShop() {
   const shop = state.items.filter(it => kindOf(it) === "shop" && !it.done);   // bought items leave this tab
   const cats = state.cats.filter(c => c.kind === "shop");
@@ -750,7 +855,7 @@ function renderPreview() {
   pending = parseEntry(v, state.cats).map((p, i) => ({ ...p, _i: i, cat: (pendingOverride[i] ?? p.cat) }));
   const opts = c => [INBOX, ...state.cats].map(x => `<option value="${x.id}"${x.id === c ? " selected" : ""}>${esc(x.name)}</option>`).join("");
   const sg = suggestions(v).map(([k, h]) => `<button class="sg" data-act="sugg" data-key="${esc(k)}" style="--c:${catById(h.c).color}"><span class="dot"></span>${esc(h.t)}</button>`).join("");
-  $("#preview").innerHTML = sg + pending.map(p => { const c = catById(p.cat); const pd = p.date || (c.kind === "shop" ? plannedTrip(p.cat) : null); const bits = [pd ? (pd === todayStr() ? "اليوم" : fmtShort.format(parseYmd(pd))) : "", p.recur ? "↻ " + recurLabel(p.recur) : "", p.priority === "urgent" ? "عاجل" : ""].filter(Boolean).join(" · ");
+  $("#preview").innerHTML = sg + pending.map(p => { const c = catById(p.cat); const pd = p.date || (c.kind === "shop" ? plannedTrip(p.cat) : null); const bits = [pd ? (pd === todayStr() ? "اليوم" : fmtShort.format(parseYmd(pd))) : "", p.recur ? "↻ " + recurLabel(p.recur) : "", p.priority === "urgent" ? "مهم" : ""].filter(Boolean).join(" · ");
     return `<span class="pv" style="--c:${c.color}"><span class="dot"></span><b>${esc(p.title)}</b>${bits ? `<span class="small muted">${bits}</span>` : ""}<select data-pv="${p._i}" aria-label="تغيير التصنيف">${opts(p.cat)}</select></span>`; }).join("");
 }
 let pending = [], pendingOverride = {};
@@ -762,7 +867,8 @@ function renderBadges() {
     home: open.filter(it => it.cat !== "inbox" && effDate(it) && effDate(it) <= t).length,
     shop: open.filter(it => kindOf(it) === "shop").length,
     tasks: open.filter(it => kindOf(it) === "task").length,
-    inbox: state.items.filter(it => it.cat === "inbox").length
+    inbox: state.items.filter(it => it.cat === "inbox").length,
+    events: open.filter(it => it.ev && evById(it.ev)).length
   };
   for (const k in counts) { const b = $("#badge-" + k); b.hidden = !counts[k]; b.textContent = counts[k] > 99 ? "99+" : counts[k]; }
 }
@@ -771,13 +877,15 @@ function render() {
   const t = new Date();
   $("#dates").innerHTML = `<b>${fmtG.format(t)}</b>${fmtH ? " · " + fmtH.format(t) : ""}`;
   document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === state.tab));
-  for (const v of ["home", "tasks", "shop", "inbox", "cats"]) $("#view-" + v).hidden = v !== state.tab;
+  for (const v of ["home", "tasks", "shop", "events", "inbox", "cats"]) $("#view-" + v).hidden = v !== state.tab;
   renderInbox();
   renderBadges();
   if (state.tab === "home") renderHome();
   if (state.tab === "tasks") renderTasks();
   if (state.tab === "shop") renderShop();
   if (state.tab === "cats") renderCats();
+  if (state.tab === "events") renderEvents();
+  $("#entry").placeholder = curEv() ? "أضف إلى " + evById(curEv()).name + "…" : "اكتب أو اضغط المايك…";
   setSync(state.mode);
   renderPreview();
   sizeHome();
@@ -794,7 +902,8 @@ function openSheet(id) {
     <div class="two">
       <div class="field"><label for="e-cat">التصنيف</label><select id="e-cat" ${ro ? "disabled" : ""}>${[INBOX, ...state.cats].map(c => `<option value="${c.id}"${c.id === it.cat ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select></div>
       <div class="field"><label for="e-date">التاريخ</label><input id="e-date" type="date" value="${effDate(it) || ""}" ${ro ? "disabled" : ""}></div>
-      <div class="field"><label for="e-pri">الأولوية</label><select id="e-pri" ${ro ? "disabled" : ""}><option value="normal">عادي</option><option value="urgent"${it.priority === "urgent" ? " selected" : ""}>عاجل</option></select></div>
+      <div class="field"><label for="e-pri">الأولوية</label><select id="e-pri" ${ro ? "disabled" : ""}><option value="normal">عادي</option><option value="urgent"${it.priority === "urgent" ? " selected" : ""}>مهم</option></select></div>
+      ${state.events.length || (it.ev && evById(it.ev)) ? `<div class="field"><label for="e-ev">المناسبة</label><select id="e-ev" ${ro ? "disabled" : ""}><option value="">بدون</option>${state.events.map(e => `<option value="${e.id}"${e.id === it.ev ? " selected" : ""}>${esc(e.emoji)} ${esc(e.name)}</option>`).join("")}</select></div>` : ""}
       <div class="field" id="f-pin"><label class="pinlbl"><input type="checkbox" id="e-pin" ${it.pin ? "checked" : ""} ${ro ? "disabled" : ""}> تاريخ خاص لهذا الصنف</label><span class="small muted" id="pinHint"></span></div>
       <div class="field" id="f-recur"><label for="e-rn">التكرار</label><div class="row" style="flex-wrap:nowrap"><input id="e-rn" type="number" min="1" max="99" value="${r.n}" style="width:4.2em" ${ro ? "disabled" : ""}>
         <select id="e-ru" ${ro ? "disabled" : ""}><option value="none">بدون</option><option value="day"${r.unit === "day" ? " selected" : ""}>يوم</option><option value="week"${r.unit === "week" ? " selected" : ""}>أسبوع</option><option value="month"${r.unit === "month" ? " selected" : ""}>شهر</option><option value="year"${r.unit === "year" ? " selected" : ""}>سنة</option></select></div></div>
@@ -832,7 +941,7 @@ function openTripSheet(cid) {
 }
 
 /* ===================== events ===================== */
-const TABS = ["home", "shop", "tasks", "inbox", "cats"];
+const TABS = ["home", "shop", "tasks", "events", "inbox", "cats"];
 function goTab(t, from) {
   state.tab = t; if (t !== "cats") catDraft = null; window.scrollTo(0, 0); render();
   /* swipe feedback: the new tab slides in from the side the finger came from */
@@ -884,6 +993,7 @@ document.addEventListener("click", async e => {
     const title = $("#e-title").value.trim(); if (!title) { toast("اكتب نصاً للعنصر"); return; }
     const ru = $("#e-ru").value; const rn = Math.max(1, Math.min(99, parseInt($("#e-rn").value, 10) || 1));
     const date = $("#e-date").value || null, cat = $("#e-cat").value, kind = catById(cat).kind, pri = $("#e-pri").value;
+    const evSel = $("#e-ev") ? ($("#e-ev").value || null) : undefined;
     let patch;
     if (kind === "shop" && !usesTrip(cat)) {
       patch = { title, cat, priority: pri, recur: null, pin: false, date };
@@ -897,6 +1007,7 @@ document.addEventListener("click", async e => {
       patch = { title, cat, priority: pri, pin: false, date: date || (ru !== "none" ? todayStr() : null), recur: ru === "none" ? null : { n: rn, unit: ru } };
       closeSheet();
     }
+    if (evSel !== undefined) patch.ev = evSel;
     await store.update(id, patch);
   }
   if (act === "classify") {
@@ -924,6 +1035,44 @@ document.addEventListener("click", async e => {
     s.has(cid) ? s.delete(cid) : s.add(cid);
     try { localStorage.setItem("daftar-closed-shop", JSON.stringify([...s])); } catch (_) {}
     renderShop();
+  }
+  if (act === "evNew") openEventSheet(null);
+  if (act === "evEdit") openEventSheet(state.evOpen);
+  if (act === "evOpen") { state.evOpen = el.dataset.ev; window.scrollTo(0, 0); render(); }
+  if (act === "evBack") { state.evOpen = null; window.scrollTo(0, 0); render(); }
+  if (act === "evEmo") { $("#ev-emo").value = el.dataset.e; document.querySelectorAll(".emogrid button").forEach(b => b.classList.toggle("on", b === el)); }
+  if (act === "evSave") {
+    const name = $("#ev-name").value.trim(); if (!name) { toast("اكتب اسم المناسبة"); return; }
+    const emoji = firstGrapheme($("#ev-emo").value) || "📌", eid = el.dataset.ev;
+    closeSheet();
+    if (eid) { await store.saveEvents(state.events.map(e => e.id === eid ? { ...e, name, emoji } : e)); toast("حُفظت المناسبة"); }
+    else { const nid = "e" + uid(); state.evOpen = nid; await store.saveEvents([...state.events, { id: nid, name, emoji, createdAt: Date.now() }]); toast("أُنشئت " + emoji + " " + name); }
+  }
+  if (act === "evDate") openEvDateSheet(id);
+  if (act === "evDateSave") {
+    const v = $("#ed-date").value, it = state.items.find(x => x.id === id); closeSheet();
+    if (!v || !it) return;
+    await store.update(id, kindOf(it) === "shop" && usesTrip(it.cat) ? { date: v, pin: true } : { date: v });
+    toast("«" + it.title + "» · " + (v === todayStr() ? "اليوم" : fmtShort.format(parseYmd(v))));
+  }
+  if (act === "evLink") openLinkSheet();
+  if (act === "evLinkSave") {
+    const ids = [...document.querySelectorAll(".linklist input:checked")].map(x => x.value), eid = state.evOpen; closeSheet();
+    for (const x of ids) await store.update(x, { ev: eid });
+    if (ids.length) toast("أُضيف " + ids.length + (ids.length === 1 ? " عنصر" : " عناصر") + " إلى المناسبة");
+  }
+  if (act === "evEnd") {
+    const box = $("#evEndBox"), ev = evById(state.evOpen); if (!ev) return;
+    box.hidden = false;
+    box.innerHTML = `<div class="row"><span style="flex:1;min-width:12em">إنهاء «${esc(ev.name)}»؟ تُحذف المناسبة فقط، وتبقى عناصرها في تصنيفاتها.</span><button class="btn sec" data-act="evEndNo">إلغاء</button><button class="btn" data-act="evEndGo">إنهاء</button></div>`;
+    box.scrollIntoView({ block: "nearest" });
+  }
+  if (act === "evEndNo") $("#evEndBox").hidden = true;
+  if (act === "evEndGo") {
+    const eid = state.evOpen, ev = evById(eid); if (!ev) return;
+    for (const it of state.items.filter(x => x.ev === eid)) await store.update(it.id, { ev: null });
+    state.evOpen = null; await store.saveEvents(state.events.filter(e => e.id !== eid));
+    toast("أُنهيت " + ev.name + ". بقيت العناصر في تصنيفاتها");
   }
   if (act === "trip") openTripSheet(el.dataset.cat);
   if (act === "saveTrip") { const v = $("#t-date").value; const cid = el.dataset.cat; closeSheet(); if (v) { await store.setTrip(cid, v); toast(catById(cid).name + ": " + fmtShort.format(parseYmd(v))); } }
@@ -1044,21 +1193,22 @@ async function submitEntry() {
 }
 async function addParsed(p) {
   let msg = "";
+  const eid = curEv(), tag = eid ? { ev: eid } : {}, evTxt = eid ? " · " + evById(eid).emoji + " " + evById(eid).name : "";
   {
     const c = catById(p.cat);
     if (c.kind === "shop" && !p.date && usesTrip(p.cat)) {
       await dropStaleTrip(p.cat);
       const trip = state.trips[p.cat];
-      await store.add({ title: p.title, cat: p.cat, date: null, pin: false, recur: null, priority: p.priority });
+      await store.add({ title: p.title, cat: p.cat, date: null, pin: false, recur: null, priority: p.priority, ...tag });
       msg = `أُضيف إلى ${c.name}${trip ? " · " + (trip === todayStr() ? "اليوم" : fmtShort.format(parseYmd(trip))) : ""}`;
     } else {
       const pin = c.kind === "shop" && !!p.date && usesTrip(p.cat);
-      const nid = await store.add({ title: p.title, cat: p.cat, date: p.date || (p.recur ? todayStr() : null), pin, recur: c.kind === "task" ? (p.recur || null) : null, priority: p.priority });
+      const nid = await store.add({ title: p.title, cat: p.cat, date: p.date || (p.recur ? todayStr() : null), pin, recur: c.kind === "task" ? (p.recur || null) : null, priority: p.priority, ...tag });
       if (p.cat === "inbox") aiClassify({ id: nid, title: p.title });
       msg = p.cat === "inbox" ? (aiModel ? "أُضيف · جارِ التصنيف…" : "أُضيف إلى الوارد") : `أُضيف إلى ${c.name}${pin ? " بتاريخ خاص" : p.date ? " · " + (p.date === todayStr() ? "اليوم" : fmtShort.format(parseYmd(p.date))) : ""}`;
     }
   }
-  return msg;
+  return msg + evTxt;
 }
 
 /* ===================== light / dark toggle (remembered on this device) ===================== */
@@ -1142,6 +1292,7 @@ function gate(msg, btn, onBtn, showOut) {
       for (const it of data.items || []) { const { id, ...rest } = it; if (id) writes.push([S.doc(F, "items/" + id), { doneAt: null, ...rest }]); }
       if (Array.isArray(data.cats) && data.cats.length) writes.push([S.doc(F, "config/categories"), { list: data.cats }]);
       if (data.trips) writes.push([S.doc(F, "config/trips"), data.trips]);
+      if (Array.isArray(data.events)) writes.push([S.doc(F, "config/events"), { list: data.events }]);
       if (data.history) writes.push([S.doc(F, "history/recent"), { items: data.history }]);
       for (let i = 0; i < writes.length; i += 400) { const b = S.writeBatch(F); for (const [r, v] of writes.slice(i, i + 400)) b.set(r, v); await b.commit(); }
       return writes.length;
@@ -1178,6 +1329,7 @@ function gate(msg, btn, onBtn, showOut) {
       openMap.clear(); snap.forEach(d => openMap.set(d.id, { id: d.id, ...d.data() })); mergeItems(); state.openLoaded = true; migrateTrips();
     }, onErr));
     unsubs.push(docApi("history/recent").onSnapshot(snap => { const h = snap.exists && snap.data().items; state.history = h && typeof h === "object" ? { ...h } : {}; if (entry.value) renderPreview(); }, onErr));
+    unsubs.push(docApi("config/events").onSnapshot(snap => { const l = snap.exists && snap.data().list; state.events = Array.isArray(l) ? l : []; render(); }, onErr));
     unsubs.push(docApi("config/trips").onSnapshot(snap => { state.trips = snap.exists ? { ...snap.data() } : {}; render(); migrateTrips(); }, onErr));
     unsubs.push(docApi("config/categories").onSnapshot(snap => { const l = snap.exists && snap.data().list; state.cats = Array.isArray(l) && l.length ? l : DEFAULT_CATS; if (state.tab !== "cats") catDraft = null; render(); }, onErr));
     api.ensureDoneFrom(addDays(new Date(), -40).getTime());
@@ -1273,7 +1425,7 @@ document.addEventListener("click", async e => {
   const act = el.dataset.act;
   if (act === "signout") window.daftarSignOut && window.daftarSignOut();
   if (act === "export" && db) {
-    const data = { app: "daftar-albait", exportedAt: new Date().toISOString(), items: await db.all(), cats: state.cats, trips: state.trips, history: state.history };
+    const data = { app: "daftar-albait", exportedAt: new Date().toISOString(), items: await db.all(), cats: state.cats, trips: state.trips, events: state.events, history: state.history };
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: "application/json" }));
     a.download = "daftar-albait-" + todayStr() + ".json"; document.body.appendChild(a); a.click(); a.remove();
   }
