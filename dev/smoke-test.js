@@ -123,9 +123,16 @@ async function setup(b, opts = {}) {
   await p.check('.linklist label:has-text("حليب") input'); await p.click('[data-act="evLinkSave"]'); await p.waitForTimeout(300);
   console.log('linked:', await p.textContent('#toast'), '| milk ev:', await p.evaluate(() => !![...window.__DB.values()].find(v => v.title === 'حليب').ev));
   await p.screenshot({ path: path.join(__dirname,'out-event-open.png'), fullPage: true });
-  console.log('badge events:', await p.textContent('#badge-events'));
+  console.log('badge events (events, not items):', await p.textContent('#badge-events'));
   // still in its store, with the event pill
   await p.click('nav.tabs [data-tab="shop"]'); await p.waitForTimeout(250);
+  console.log('shop event mark is emoji only:', await p.evaluate(() => [...document.querySelectorAll('#view-shop .evmark')].map(x => x.textContent).join('') + ' | name hidden: ' + ![...document.querySelectorAll('#view-shop .meta')].some(m => m.textContent.includes('طلعة'))));
+  // header + tabs stay pinned while the list scrolls
+  await p.evaluate(() => { for (let i = 0; i < 25; i++) state.items.push({ id: 'z' + i, title: 'صنف ' + i, cat: 'super', date: null, pin: false, done: false, priority: 'normal' }); render(); window.scrollTo(0, 900); });
+  await p.waitForTimeout(200);
+  console.log('pinned header:', await p.evaluate(() => ({ scrollY: Math.round(scrollY), datesTop: Math.round(document.querySelector('#dates').getBoundingClientRect().top), tabsTop: Math.round(document.querySelector('nav.tabs').getBoundingClientRect().top) })));
+  await p.screenshot({ path: path.join(__dirname,'out-pinned.png') });
+  await p.evaluate(() => { state.items = state.items.filter(it => !String(it.id).startsWith('z')); window.scrollTo(0, 0); render(); });
   console.log('shop shows event pill:', await p.evaluate(() => [...document.querySelectorAll('#view-shop .item')].filter(x => x.textContent.includes('🍖')).map(x => x.querySelector('.t').textContent).join(',')),
     '| placeholder:', await p.getAttribute('#entry', 'placeholder'));
   await p.fill('#entry', 'بيض'); await p.press('#entry', 'Enter'); await p.waitForTimeout(300);
