@@ -30,17 +30,17 @@ window.DAFTAR_CONFIG = { firebase: { apiKey: "preview", authDomain: "x", project
   const it = (title, cat, extra = {}) => ["items/p" + (++n), { title, cat, date: null, pin: false, done: false, doneAt: null, priority: "normal", recur: null, createdAt: now - n * 60000, ...extra }];
   const seed = () => new Map([
     it("حليب", "super"), it("خبز", "super"), it("بيض", "super"), it("طماطم", "super"), it("رز بسمتي", "super"),
-    it("بنادول", "pharma"), it("فيتامين د", "pharma", { pin: true, date: day(5) }),
+    it("بنادول", "pharma", { date: day(4) }), it("فيتامين د", "pharma"),
     it("لمبات ليد", "tools"), it("شريط لاصق", "tools"),
     it("شماغ", "retail"),
-    it("طلبية أمازون", "online", { pin: true, date: day(3) }),
+    it("طلبية أمازون", "online", { date: day(3) }),
     it("اتصل بالسباك", "tasks", { date: day(0), priority: "urgent" }),
     it("نظف فلتر المكيف", "tasks", { date: day(2), recur: { n: 1, unit: "month" } }),
     it("ادفع فاتورة الكهرباء", "tasks", { date: day(6) }),
     it("رتب المخزن", "tasks"),
     it("شي للبيت", "inbox"), it("هدية عيد ميلاد", "inbox"),
     it("قهوة", "super", { done: true, doneAt: now - 86400000 }),
-    ["config/trips", { super: day(1), pharma: day(4) }],
+    ["config/trips", { super: day(1) }],
     ["history/recent", { items: { "قهوه": { t: "قهوة", c: "super", n: 3, d: day(-1) }, "حليب": { t: "حليب", c: "super", n: 5, d: day(-3) }, "خبز": { t: "خبز", c: "super", n: 4, d: day(-3) } } }]
   ]);
   let db; try { const s = localStorage.getItem(KEY); if (s) db = new Map(JSON.parse(s)); } catch (e) {}

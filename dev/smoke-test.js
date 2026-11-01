@@ -65,7 +65,9 @@ async function setup(b, opts = {}) {
     const shopIds = () => [...window.__DB].filter(([k, v]) => k.startsWith('items/') && v.cat === 'super' && !v.done).map(([k]) => k);
     for (const k of shopIds()) window.__DB.delete(k);
     const d = new Date(Date.now() + 3 * 864e5), day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    window.__DB.set('config/trips', { super: day }); window.__DB.set('items/x1', { title: 'تمر', cat: 'super', date: null, pin: false, done: false, doneAt: null, priority: 'normal', recur: null, createdAt: 1 });
+    const S = await import('https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js');   // same mock instance: its writes refresh the app
+    await S.setDoc(S.doc(null, 'items/x1'), { title: 'تمر', cat: 'super', date: null, pin: false, done: false, doneAt: null, priority: 'normal', recur: null, createdAt: 1 });
+    await S.setDoc(S.doc(null, 'config/trips'), { super: day });
     return day; });
   await p.click('nav.tabs [data-tab="shop"]'); await p.waitForTimeout(300);   // listeners fire on the next write; force one
   await p.fill('#entry', 'خبز'); await p.press('#entry', 'Enter'); await p.waitForTimeout(400);
@@ -77,8 +79,36 @@ async function setup(b, opts = {}) {
   await p.click('nav.tabs [data-tab="tasks"]'); await p.waitForTimeout(250);
   console.log('tasks:', await p.evaluate(() => ({ headers: document.querySelectorAll('#view-tasks .group-h').length, rows: document.querySelectorAll('#view-tasks .card:not(:has(details)) .item').length, label: document.querySelector('#view-tasks .row')?.textContent })));
   await p.screenshot({ path: path.join(__dirname,'out-tasks.png') });
+  // 5e) weekday phrases: the date words leave the title
+  console.log('weekday parse:', JSON.stringify(await p.evaluate(() => {
+    const sat = new Date(2026, 9, 31), fri = new Date(2026, 9, 30);   // Sat 31 Oct, Fri 30 Oct 2026
+    const P = (t, d) => { const r = parseEntry(t, state.cats, d)[0]; return r.title + '|' + r.date; };
+    return [P('بنادول هذا السبت', fri), P('بنادول السبت الجاي', fri), P('هالسبت جيب خبز', fri), P('هالسبت جيب خبز', sat), P('اتصل بالسباك يوم الأحد القادم', fri),
+            P('بنادول هذا السبت', sat), P('بنادول السبت', sat), P('موعد الأسنان الخميس اللي جاي', fri)]; })));
+  // 5f) other stores date each item; supermarket keeps one list date
+  await p.click('nav.tabs [data-tab="shop"]'); await p.waitForTimeout(200);
+  await p.fill('#entry', 'بنادول بكرة'); await p.press('#entry', 'Enter'); await p.waitForTimeout(400);
+  const t1 = await p.textContent('#toast');
+  await p.fill('#entry', 'فيتامين'); await p.press('#entry', 'Enter'); await p.waitForTimeout(400);
+  console.log('pharma:', t1, '/', await p.textContent('#toast'), '| pharma date chip:', await p.evaluate(() => [...document.querySelectorAll('#view-shop .card')].filter(c => c.textContent.includes('صيدلية')).map(c => !!c.querySelector('.trip'))[0]),
+    '| super chip:', await p.evaluate(() => [...document.querySelectorAll('#view-shop .card')].filter(c => c.textContent.includes('سوبرماركت')).map(c => !!c.querySelector('.trip'))[0]));
+  await p.click('#view-shop .item .txt:has-text("فيتامين")'); await p.waitForTimeout(200);
+  console.log('pharma sheet:', await p.evaluate(() => ({ pinHidden: document.querySelector('#f-pin').hidden, dateOn: !document.querySelector('#e-date').disabled, date: document.querySelector('#e-date').value })));
+  await p.fill('#e-date', '2026-12-05'); await p.click('[data-act="saveSheet"]'); await p.waitForTimeout(300);
+  console.log('pharma saved:', JSON.stringify(await p.evaluate(() => { const v = [...window.__DB.values()].find(v => v.title === 'فيتامين'); return [v.date, v.pin]; })));
+  await p.screenshot({ path: path.join(__dirname,'out-shop2.png') });
   console.log('mic visible:', await p.evaluate(() => !document.querySelector('#micBtn').hidden));
   console.log('errors1:', p.errs);
+  await ctx.close();
+  // 6a) older data: a pharmacy list date moves onto its items, then is removed
+  ({ ctx, p } = await setup(b, { init: () => { const d = new Date(Date.now() + 2 * 864e5), day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); window.__DB = new Map([
+    ['items/m1', { title: 'بنادول', cat: 'pharma', date: null, pin: false, done: false, doneAt: null, priority: 'normal', recur: null, createdAt: 1 }],
+    ['items/m2', { title: 'مرهم', cat: 'pharma', date: '2026-12-01', pin: true, done: false, doneAt: null, priority: 'normal', recur: null, createdAt: 2 }],
+    ['items/m3', { title: 'حليب', cat: 'super', date: null, pin: false, done: false, doneAt: null, priority: 'normal', recur: null, createdAt: 3 }],
+    ['config/trips', { pharma: day, super: day }]]); window.__day = day; } }));
+  await p.goto('https://app.test/'); await p.waitForTimeout(300); await p.click('#gateBtn'); await p.waitForTimeout(700);
+  console.log('migrate:', JSON.stringify(await p.evaluate(() => ({ ok: window.__DB.get('items/m1').date === window.__day, pinned: window.__DB.get('items/m2').date, milk: window.__DB.get('items/m3').date, trips: Object.keys(window.__DB.get('config/trips')) }))));
+  console.log('errors1b:', p.errs);
   await ctx.close();
   // 6) not on the family list
   ({ ctx, p } = await setup(b, { init: () => { window.__DENY = true; } }));

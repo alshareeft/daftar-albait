@@ -374,9 +374,13 @@ function parseWhen(text, now) {
   if (!date) {
     for (let i = 0; i < 7; i++) {
       const w = WEEKDAYS[i];
-      if (new RegExp("(^|\\s)(يوم\\s+)?" + w + "($|\\s)").test(nn)) {
-        let diff = (i - base.getDay() + 7) % 7; if (diff === 0) diff = 7;
-        date = addDays(base, diff); strip(fx("(يوم\\s+)?" + w)); break;
+      /* optional words around the day name are part of the date, not the item: هذا/هذي/ذا/يوم before, الجاي/القادم/اللي جاي after */
+      const pre = "(?:(?:يوم|هذا|هذي|ذا|هاذا)\\s+)*", day = "(?:" + w + "|هال" + w.slice(2) + ")", post = "(?:\\s+(?:(?:اللي|الي)\\s+)?(?:الجاي|الياي|القادم|القادمه|جاي|ياي))?";
+      const m = nn.match(new RegExp("(^|\\s)(" + pre + day + post + ")($|\\s)"));
+      if (m) {
+        let diff = (i - base.getDay() + 7) % 7;
+        if (diff === 0 && !/^(هذا|هذي|ذا|هاذا|هال)/.test(m[2])) diff = 7;   // "هذا السبت" on a Saturday = today; "السبت" = next week
+        date = addDays(base, diff); strip(fx(pre + day + post)); break;
       }
     }
   }
@@ -445,16 +449,18 @@ state.trips = {};   // shopping trip date per shop category: {catId: "yyyy-mm-dd
 state.closedShop = (() => { try { return new Set(JSON.parse(localStorage.getItem("daftar-closed-shop") || "[]")); } catch (e) { return new Set(); } })();
 state.closedGroups = (() => { try { return new Set(JSON.parse(localStorage.getItem("daftar-closed-groups") || "[]")); } catch (e) { return new Set(); } })();
 
-/* Effective date. Shop items follow their category's trip date unless pinned to their own date. */
+/* Only the supermarket has one shared date for its whole list (the shopping trip); every other store dates each item. */
+const usesTrip = cid => cid === "super";
+/* Effective date. Supermarket items follow the trip date unless pinned to their own date; other shop items keep their own. */
 function effDate(it) {
   if (kindOf(it) !== "shop") return it.date || null;
   if (it.done && it.doneAt) return ymd(new Date(it.doneAt));   // a bought item stays on the day it was bought, as a record
-  const d = it.pin ? it.date : (state.trips[it.cat] || it.date);
+  const d = (it.pin || !usesTrip(it.cat)) ? it.date : (state.trips[it.cat] || it.date);
   // once a shopping day has passed, what's left un-bought loses its date and waits to be rescheduled
   return d && (it.done || d >= todayStr()) ? d : null;
 }
 /* a store's date, only while it is today or later */
-const liveTrip = cid => { const t = state.trips[cid]; return t && t >= todayStr() ? t : null; };
+const liveTrip = cid => { if (!usesTrip(cid)) return null; const t = state.trips[cid]; return t && t >= todayStr() ? t : null; };
 /* the category's current trip, if it still has open items following it */
 function tripFor(catId, exceptId) {
   const t = state.trips[catId];
@@ -469,8 +475,23 @@ async function dropStaleTrip(catId, exceptId) {
   if (prev && prev.cat === catId && !prev.done && !prev.pin) return;
   if (t < todayStr() || !tripFor(catId, exceptId)) await store.setTrip(catId, null);
 }
+/* older data: a list date on a store other than the supermarket moves onto the items that followed it, then is removed */
+let migratingTrips = false;
+async function migrateTrips() {
+  if (!db || !state.openLoaded || migratingTrips) return;
+  const old = Object.keys(state.trips).filter(cid => !usesTrip(cid)); if (!old.length) return;
+  migratingTrips = true;
+  try {
+    for (const cid of old) {
+      const t = state.trips[cid];
+      if (t && t >= todayStr()) for (const it of state.items.filter(x => x.cat === cid && !x.done && !x.pin && !x.date)) await store.update(it.id, { date: t });
+      await store.setTrip(cid, null);
+    }
+  } finally { migratingTrips = false; }
+}
 /* the date a new, un-dated item in this category would get (or null) */
 function plannedTrip(catId) {
+  if (!usesTrip(catId)) return null;
   const t = state.trips[catId];
   return t && t >= todayStr() ? t : null;
 }
@@ -574,7 +595,7 @@ function itemRow(it, opts = {}) {
   if (opts.showCat) meta.push(`<span class="pill"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</span>`);
   if (it.priority === "urgent") meta.push(`<span class="pill urgent">عاجل</span>`);
   const ed = effDate(it);
-  if (ed && opts.showDate !== false) { const late = !done && ed < todayStr(); meta.push(`<span${late ? ' style="color:var(--urgent);font-weight:600"' : ""}>${it.pin ? "تاريخ خاص · " : ""}${ed === todayStr() ? "اليوم" : fmtShort.format(parseYmd(ed))}${late ? " · متأخرة" : ""}</span>`); }
+  if (ed && opts.showDate !== false) { const late = !done && ed < todayStr(); meta.push(`<span${late ? ' style="color:var(--urgent);font-weight:600"' : ""}>${it.pin && usesTrip(it.cat) ? "تاريخ خاص · " : ""}${ed === todayStr() ? "اليوم" : fmtShort.format(parseYmd(ed))}${late ? " · متأخرة" : ""}</span>`); }
   if (it.recur && kindOf(it) === "task") meta.push(`<span>↻ ${recurLabel(it.recur)}</span>`);
   if (opts.proj) meta.push(`<span>موعد متكرر قادم</span>`);
   return `<div class="item${done ? " done" : ""}" style="--c:${c.color}">
@@ -680,13 +701,13 @@ function renderShop() {
   for (const c of cats) {
     const list = sortItems(shop.filter(it => it.cat === c.id));
     if (!list.length) continue;
-    const trip = liveTrip(c.id), hasFollowers = list.some(it => !it.done && !it.pin);
+    const trip = liveTrip(c.id), hasFollowers = usesTrip(c.id) && list.some(it => !it.done && !it.pin);
     const tripLabel = trip ? (trip === todayStr() ? "اليوم" : fmtG.format(parseYmd(trip))) : "بدون موعد";
     const late = false;
     const shut = state.closedShop.has(c.id), openN = list.filter(i => !i.done).length;
     html += `<div class="card${shut ? " closed" : ""}"><button class="grp-h" data-act="sgrp" data-cat="${c.id}" aria-expanded="${!shut}"><span class="sw" style="background:${c.color}"></span><span class="gname">${esc(c.name)}</span><span class="gcount">${openN || "✓"}</span>${chev}</button>
       ${hasFollowers ? `<button class="trip${late ? " late" : ""}" data-act="trip" data-cat="${c.id}" ${state.readOnly ? "disabled" : ""}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>${trip ? `<b>${tripLabel}</b>${late ? " · متأخر" : ""}` : `<span class="muted">حدد تاريخاً</span>`}</span><span class="small muted">${trip ? "تغيير" : ""}</span></button>` : ""}
-      <div class="list"${shut ? " hidden" : ""}>${list.map(it => itemRow(it, { showDate: !!it.pin })).join("")}</div></div>`;
+      <div class="list"${shut ? " hidden" : ""}>${list.map(it => itemRow(it, { showDate: !!it.pin || !usesTrip(c.id) })).join("")}</div></div>`;
   }
   if (!shop.length) html += `<div class="card empty">القائمة فارغة. اكتب أو قل اسم الصنف، مثلاً «حليب»، وسيُضاف إلى محله.</div>`;
   $("#view-shop").innerHTML = html;
@@ -788,14 +809,15 @@ function openSheet(id) {
 /* shop items: date follows the trip unless "own date" is ticked; tasks: date + recurrence */
 function syncSheet(id) {
   const c = catById($("#e-cat").value), shop = c.kind === "shop", pin = $("#e-pin").checked, d = $("#e-date");
-  $("#f-pin").hidden = !shop; $("#f-recur").hidden = shop;
-  if (shop && !pin) {
+  const trip1 = shop && usesTrip(c.id);
+  $("#f-pin").hidden = !trip1; $("#f-recur").hidden = shop;
+  if (trip1 && !pin) {
     const trip = liveTrip(c.id);
     d.disabled = true; d.value = trip || "";
     $("#pinHint").textContent = trip ? "يتبع تاريخ " + c.name : "بدون تاريخ حتى تحدد تاريخاً لـ" + c.name;
   } else {
-    d.disabled = state.readOnly; if (shop && !d.value) d.value = state.sel;
-    $("#pinHint").textContent = shop ? "لن يتغيّر مع تاريخ " + c.name : "";
+    d.disabled = state.readOnly; if (trip1 && !d.value) d.value = state.sel;
+    $("#pinHint").textContent = trip1 ? "لن يتغيّر مع تاريخ " + c.name : "";
   }
 }
 function closeSheet() { $("#sheetHost").innerHTML = ""; }
@@ -863,7 +885,10 @@ document.addEventListener("click", async e => {
     const ru = $("#e-ru").value; const rn = Math.max(1, Math.min(99, parseInt($("#e-rn").value, 10) || 1));
     const date = $("#e-date").value || null, cat = $("#e-cat").value, kind = catById(cat).kind, pri = $("#e-pri").value;
     let patch;
-    if (kind === "shop") {
+    if (kind === "shop" && !usesTrip(cat)) {
+      patch = { title, cat, priority: pri, recur: null, pin: false, date };
+      closeSheet();
+    } else if (kind === "shop") {
       const pin = $("#e-pin").checked;
       patch = { title, cat, priority: pri, recur: null, pin: pin && !!date, date: pin ? date : null };
       closeSheet();
@@ -876,7 +901,7 @@ document.addEventListener("click", async e => {
   }
   if (act === "classify") {
     const c = catById(el.dataset.cat), it = state.items.find(x => x.id === id) || {};
-    if (c.kind === "shop") { await dropStaleTrip(c.id, id); await store.update(id, { cat: c.id, pin: false, date: null }); }
+    if (c.kind === "shop" && usesTrip(c.id)) { await dropStaleTrip(c.id, id); await store.update(id, { cat: c.id, pin: false, date: null }); }
     else await store.update(id, { cat: c.id, pin: false, date: it.date || null });
     toast("نُقل إلى " + c.name);
   }
@@ -1021,16 +1046,16 @@ async function addParsed(p) {
   let msg = "";
   {
     const c = catById(p.cat);
-    if (c.kind === "shop" && !p.date) {
+    if (c.kind === "shop" && !p.date && usesTrip(p.cat)) {
       await dropStaleTrip(p.cat);
       const trip = state.trips[p.cat];
       await store.add({ title: p.title, cat: p.cat, date: null, pin: false, recur: null, priority: p.priority });
       msg = `أُضيف إلى ${c.name}${trip ? " · " + (trip === todayStr() ? "اليوم" : fmtShort.format(parseYmd(trip))) : ""}`;
     } else {
-      const pin = c.kind === "shop" && !!p.date;
+      const pin = c.kind === "shop" && !!p.date && usesTrip(p.cat);
       const nid = await store.add({ title: p.title, cat: p.cat, date: p.date || (p.recur ? todayStr() : null), pin, recur: c.kind === "task" ? (p.recur || null) : null, priority: p.priority });
       if (p.cat === "inbox") aiClassify({ id: nid, title: p.title });
-      msg = p.cat === "inbox" ? (aiModel ? "أُضيف · جارِ التصنيف…" : "أُضيف إلى الوارد") : `أُضيف إلى ${c.name}${pin ? " بتاريخ خاص" : ""}`;
+      msg = p.cat === "inbox" ? (aiModel ? "أُضيف · جارِ التصنيف…" : "أُضيف إلى الوارد") : `أُضيف إلى ${c.name}${pin ? " بتاريخ خاص" : p.date ? " · " + (p.date === todayStr() ? "اليوم" : fmtShort.format(parseYmd(p.date))) : ""}`;
     }
   }
   return msg;
@@ -1141,7 +1166,7 @@ function gate(msg, btn, onBtn, showOut) {
   state.userEmail = "";
 
   A.onAuthStateChanged(auth, async user => {
-    stopData();
+    stopData(); state.openLoaded = false;
     if (!user) { gate("سجّل الدخول بحساب Google المضاف إلى قائمة الأسرة.", "تسجيل الدخول بـ Google", signIn); return; }
     state.userEmail = user.email || "";
     gate("جارِ فتح الدفتر…");
@@ -1150,10 +1175,10 @@ function gate(msg, btn, onBtn, showOut) {
     catch (e) { if (e && e.code === "permission-denied") return deny(); }
     db = api; gate(null); setSync("db");
     unsubs.push(S.onSnapshot(S.query(itemsCol, S.where("done", "==", false)), snap => {
-      openMap.clear(); snap.forEach(d => openMap.set(d.id, { id: d.id, ...d.data() })); mergeItems();
+      openMap.clear(); snap.forEach(d => openMap.set(d.id, { id: d.id, ...d.data() })); mergeItems(); state.openLoaded = true; migrateTrips();
     }, onErr));
     unsubs.push(docApi("history/recent").onSnapshot(snap => { const h = snap.exists && snap.data().items; state.history = h && typeof h === "object" ? { ...h } : {}; if (entry.value) renderPreview(); }, onErr));
-    unsubs.push(docApi("config/trips").onSnapshot(snap => { state.trips = snap.exists ? { ...snap.data() } : {}; render(); }, onErr));
+    unsubs.push(docApi("config/trips").onSnapshot(snap => { state.trips = snap.exists ? { ...snap.data() } : {}; render(); migrateTrips(); }, onErr));
     unsubs.push(docApi("config/categories").onSnapshot(snap => { const l = snap.exists && snap.data().list; state.cats = Array.isArray(l) && l.length ? l : DEFAULT_CATS; if (state.tab !== "cats") catDraft = null; render(); }, onErr));
     api.ensureDoneFrom(addDays(new Date(), -40).getTime());
     render(); sweepBought();
@@ -1189,7 +1214,7 @@ ${list}
     if (!c) { toast("لم يتعرّف عليه التصنيف، فبقي في الوارد"); return; }
     const title = typeof j.title === "string" && j.title.trim() && j.title.length <= 80 ? j.title.trim() : it.title;
     const patch = { cat: c.id, title, aiCat: true };
-    if (c.kind === "shop") { patch.pin = false; patch.date = null; await dropStaleTrip(c.id, it.id); }
+    if (c.kind === "shop") { patch.pin = false; if (usesTrip(c.id)) { patch.date = null; await dropStaleTrip(c.id, it.id); } }
     store.update(it.id, patch);
     toast(`«${title}» ← ${c.name}`);
   } catch (e) { /* quota, network or App Check: the item simply stays in the inbox */ }
