@@ -164,15 +164,22 @@ body.is-focus{overflow:hidden}
 .cq .dot{width:8px;height:8px}
 /* events: a tag on items that keeps them in their own category */
 .evlist{display:flex;flex-direction:column;gap:10px}
-.evcard{display:flex;align-items:center;gap:12px;width:100%;text-align:right;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;color:var(--ink)}
+.evbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.evbox.open{border-color:var(--accent)}
+.evbox .evhd{gap:12px;padding:12px 14px;background:var(--accent-soft);color:var(--ink);font-weight:500}
+.evbox.open .evhd{background:var(--accent-soft);background:color-mix(in srgb,var(--accent) 24%,var(--surface))}
+.evbox.open .evhd{border-bottom:1px solid var(--line)}
+.evbody{padding:12px 14px 14px;display:flex;flex-direction:column;gap:12px}
+.evgrp{border-top:1px solid var(--line);padding-top:10px}
+.evgrp .group-h h3{margin:0;font-size:.95rem;font-weight:600}
+.evfoot{padding-top:4px}
+#evEndBox{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .emo{font-size:1.6rem;line-height:1;width:2.6rem;height:2.6rem;display:grid;place-items:center;border-radius:12px;background:var(--sunken);flex:none}
-.evcard .evtx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.evcard b{font-weight:600;overflow-wrap:anywhere}
-.evcard .chev{transform:rotate(90deg);color:var(--muted)}
+.evhd .evtx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.evhd b{font-weight:600;font-size:1.05rem;overflow-wrap:anywhere}
+.evbox.open .emo{background:var(--surface)}
 .evbar{height:4px;border-radius:2px;background:var(--sunken);overflow:hidden;margin-top:4px}
 .evbar i{display:block;height:100%;background:var(--accent);border-radius:2px}
-.evhead{display:flex;align-items:center;gap:10px}
-.evhead h2{flex:1;min-width:0;font-family:var(--f-display);font-weight:600;font-size:1.15rem;margin:0;overflow-wrap:anywhere}
 .evhint{margin:0;color:var(--muted);font-size:.85rem}
 .adddate{flex:none;border:1px dashed var(--line);background:transparent;border-radius:999px;padding:4px 10px;font-size:.8rem;color:var(--accent)}
 .emogrid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
@@ -730,31 +737,31 @@ state.events = []; state.evOpen = null;
 const evById = id => state.events.find(e => e.id === id);
 const curEv = () => state.tab === "events" && state.evOpen && evById(state.evOpen) ? state.evOpen : null;
 const EMOJIS = ["🍖","🔥","⛺","🏕️","🌴","🏖️","🎉","🎂","🎁","🎈","🌙","🕌","🍽️","☕","🧺","🛒","🏠","🛠️","🚗","✈️","🧳","🎓","💍","👶"];
-const BACK = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 function renderEvents() {
+  /* every event is one box: a tinted header that opens/closes it in place, and its items inside the same box.
+     One box is open at a time, so it is always clear which event the entry bar adds to. */
   const V = $("#view-events"), ro = state.readOnly;
-  const ev = state.evOpen && evById(state.evOpen);
-  if (!ev) {
-    state.evOpen = null;
-    let html = `<div class="row"><span class="muted small">${state.events.length ? "المناسبات: " + state.events.length : ""}</span><span class="spacer"></span><button class="btn" data-act="evNew" ${ro ? "disabled" : ""}>مناسبة جديدة</button></div>`;
-    if (!state.events.length) html += `<div class="card empty">لا مناسبات بعد. أنشئ مناسبة مثل «طلعة الشوي» واجمع فيها ما تحتاجه من المتاجر المختلفة. تبقى العناصر في تصنيفاتها كالمعتاد.</div>`;
-    else html += `<div class="evlist">${state.events.map(e => {
-      const all = state.items.filter(it => it.ev === e.id), left = all.filter(it => !it.done).length, n = all.length;
-      return `<button class="evcard" data-act="evOpen" data-ev="${e.id}"><span class="emo">${esc(e.emoji)}</span><span class="evtx"><b>${esc(e.name)}</b>
-        <span class="small muted">${n ? (left ? "متبقٍ " + left + " من " + n : "اكتملت كل العناصر") : "لا عناصر بعد"}</span>${n ? `<span class="evbar"><i style="width:${Math.round((n - left) / n * 100)}%"></i></span>` : ""}</span>${chev}</button>`; }).join("")}</div>`;
-    V.innerHTML = html; return;
+  if (state.evOpen && !evById(state.evOpen)) state.evOpen = null;
+  let html = `<div class="row"><span class="muted small">${state.events.length ? "المناسبات: " + state.events.length : ""}</span><span class="spacer"></span><button class="btn" data-act="evNew" ${ro ? "disabled" : ""}>مناسبة جديدة</button></div>`;
+  if (!state.events.length) html += `<div class="card empty">لا مناسبات بعد. أنشئ مناسبة مثل «طلعة الشوي» واجمع فيها ما تحتاجه من المتاجر المختلفة. تبقى العناصر في تصنيفاتها كالمعتاد.</div>`;
+  for (const e of state.events) {
+    const all = state.items.filter(it => it.ev === e.id), open = all.filter(it => !it.done), done = all.filter(it => it.done), n = all.length, isOpen = state.evOpen === e.id;
+    html += `<div class="evbox${isOpen ? " open" : " closed"}">
+      <button class="evhd grp-h" data-act="evToggle" data-ev="${e.id}" aria-expanded="${isOpen}"><span class="emo">${esc(e.emoji)}</span>
+        <span class="evtx"><b>${esc(e.name)}</b><span class="small muted">${n ? (open.length ? "متبقٍ " + open.length + " من " + n : "اكتملت كل العناصر") : "لا عناصر بعد"}</span>${n ? `<span class="evbar"><i style="width:${Math.round(done.length / n * 100)}%"></i></span>` : ""}</span>${chev}</button>`;
+    if (isOpen) {
+      html += `<div class="evbody">
+        <p class="evhint">ما تكتبه في الشريط بالأسفل يُضاف إلى هذه المناسبة وإلى تصنيفه.</p>
+        <div class="row"><button class="ghost" data-act="evLink" ${ro ? "disabled" : ""}>إضافة عناصر موجودة</button><button class="ghost" data-act="evEdit" ${ro ? "disabled" : ""}>تعديل</button></div>`;
+      const groups = [...state.cats, INBOX].map(c => ({ c, list: sortItems(open.filter(it => it.cat === c.id)) })).filter(g => g.list.length);
+      for (const { c, list } of groups) html += `<div class="evgrp"><div class="group-h"><span class="sw" style="background:${c.color}"></span><h3>${esc(c.name)}</h3><span class="spacer"></span><span class="small muted">${list.length}</span></div>
+          <div class="list">${list.map(it => itemRow(it, { evView: true })).join("")}</div></div>`;
+      if (!open.length) html += `<div class="empty">${n ? "اكتملت كل عناصر المناسبة." : "لا عناصر بعد. اكتب ما تحتاجه في الشريط بالأسفل، أو أضف عناصر موجودة."}</div>`;
+      if (done.length) html += `<details><summary>تم (${done.length})</summary><div class="list">${done.map(it => itemRow(it, { evView: true, showCat: true })).join("")}</div></details>`;
+      html += `<div class="row evfoot"><button class="btn del" data-act="evEnd" ${ro ? "disabled" : ""}>إنهاء المناسبة</button></div><div id="evEndBox" hidden></div></div>`;
+    }
+    html += `</div>`;
   }
-  const all = state.items.filter(it => it.ev === ev.id), open = all.filter(it => !it.done), done = all.filter(it => it.done);
-  let html = `<div class="card"><div class="evhead"><button class="iconbtn sm" data-act="evBack" aria-label="رجوع إلى المناسبات">${BACK}</button><span class="emo">${esc(ev.emoji)}</span><h2>${esc(ev.name)}</h2>
-      <button class="ghost" data-act="evEdit" ${ro ? "disabled" : ""}>تعديل</button></div>
-    <p class="evhint" style="margin-top:10px">ما تكتبه في الشريط بالأسفل يُضاف إلى هذه المناسبة وإلى تصنيفه في المشتريات أو المهام.</p>
-    <div class="row" style="margin-top:10px"><span class="small muted">${all.length ? "تم " + done.length + " من " + all.length : ""}</span><span class="spacer"></span><button class="ghost" data-act="evLink" ${ro ? "disabled" : ""}>إضافة عناصر موجودة</button></div></div>`;
-  const groups = [...state.cats, INBOX].map(c => ({ c, list: sortItems(open.filter(it => it.cat === c.id)) })).filter(g => g.list.length);
-  for (const { c, list } of groups) html += `<div class="card"><div class="group-h"><span class="sw" style="background:${c.color}"></span><h2>${esc(c.name)}</h2><span class="spacer"></span><span class="small muted">${list.length}</span></div>
-      <div class="list">${list.map(it => itemRow(it, { evView: true })).join("")}</div></div>`;
-  if (!open.length) html += `<div class="card empty">${all.length ? "اكتملت كل عناصر المناسبة." : "لا عناصر بعد. اكتب ما تحتاجه في الشريط بالأسفل، أو أضف عناصر موجودة."}</div>`;
-  if (done.length) html += `<div class="card"><details><summary>تم (${done.length})</summary><div class="list">${done.map(it => itemRow(it, { evView: true, showCat: true })).join("")}</div></details></div>`;
-  html += `<div class="row"><button class="btn del" data-act="evEnd" ${ro ? "disabled" : ""}>إنهاء المناسبة</button></div><div class="card" id="evEndBox" hidden></div>`;
   V.innerHTML = html;
 }
 function openEventSheet(id) {
@@ -1038,8 +1045,10 @@ document.addEventListener("click", async e => {
   }
   if (act === "evNew") openEventSheet(null);
   if (act === "evEdit") openEventSheet(state.evOpen);
-  if (act === "evOpen") { state.evOpen = el.dataset.ev; window.scrollTo(0, 0); render(); }
-  if (act === "evBack") { state.evOpen = null; window.scrollTo(0, 0); render(); }
+  if (act === "evToggle") {
+    state.evOpen = state.evOpen === el.dataset.ev ? null : el.dataset.ev; render();
+    const box = state.evOpen && document.querySelector(`.evbox.open`); if (box) box.scrollIntoView({ block: "nearest" });
+  }
   if (act === "evEmo") { $("#ev-emo").value = el.dataset.e; document.querySelectorAll(".emogrid button").forEach(b => b.classList.toggle("on", b === el)); }
   if (act === "evSave") {
     const name = $("#ev-name").value.trim(); if (!name) { toast("اكتب اسم المناسبة"); return; }

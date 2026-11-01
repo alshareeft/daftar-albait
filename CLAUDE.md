@@ -27,7 +27,7 @@ Arabic (RTL) household app: tasks + shopping lists, shared by a family, used mos
 - Tabs order: الرئيسية، المشتريات، المهام، المناسبات، الوارد، التصنيفات. Badge counts on tabs. Swipe sideways switches tabs; pull-to-refresh is off.
 - Tasks tab: one flat list (no category grouping); each task has its own date.
 - Priority `"urgent"` is labelled «مهم» in the UI (value unchanged).
-- Events tab: list of events (emoji + name + progress) → event view grouped by category, items show their dates as in shopping; undated items get a «+ تاريخ» button; «إضافة عناصر موجودة» links open items; event picker in the item edit sheet.
+- Events tab: «مناسبة جديدة» always on top; each event is one box (tinted header with emoji, name, progress; chevron like the store groups) that opens in place with its items inside, grouped by category. One box open at a time (the entry bar adds to it); items show their dates as in shopping; undated items get a «+ تاريخ» button; «إضافة عناصر موجودة» links open items; event picker in the item edit sheet.
 - No auto-splitting of entries: one entry = one item.
 - No date is auto-assigned on entry except the store's current date, or a date the user spoke/typed.
 - Home: calendar (arrows: left = next month, right = previous), shrinks to one week with an animation when swiping up / scrolling the list; day list grouped by category, collapsible; full-screen focus mode for "super" (supermarket) only.

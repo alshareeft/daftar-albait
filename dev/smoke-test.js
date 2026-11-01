@@ -110,7 +110,7 @@ async function setup(b, opts = {}) {
   await p.fill('#ev-name', 'طلعة الشوي'); await p.click('.emogrid [data-e="🍖"]');
   await p.screenshot({ path: path.join(__dirname,'out-event-sheet.png') });
   await p.click('[data-act="evSave"]'); await p.waitForTimeout(300);
-  console.log('event created:', await p.textContent('#toast'), '| open:', await p.textContent('#view-events h2'), '| placeholder:', await p.getAttribute('#entry', 'placeholder'));
+  console.log('event created:', await p.textContent('#toast'), '| open:', await p.textContent('.evbox.open .evhd b'), '| placeholder:', await p.getAttribute('#entry', 'placeholder'));
   for (const t of ['فحم', 'لحم غنم', 'دلة قهوة أمازون السبت', 'احجز المكان']) { await p.fill('#entry', t); await p.press('#entry', 'Enter'); await p.waitForTimeout(300); }
   console.log('add in event:', await p.textContent('#toast'));
   console.log('tagged:', JSON.stringify(await p.evaluate(() => [...window.__DB].filter(([k, v]) => k.startsWith('items/') && v.ev).map(([k, v]) => v.title + ':' + v.cat))));
@@ -136,10 +136,17 @@ async function setup(b, opts = {}) {
   console.log('untagged:', await p.evaluate(() => [...window.__DB.values()].find(v => v.title === 'دلة قهوة أمازون').ev));
   // list + end
   await p.click('nav.tabs [data-tab="events"]'); await p.waitForTimeout(200);
-  await p.click('[data-act="evBack"]'); await p.waitForTimeout(200);
+  // a second event: the new button stays visible; only one box is open at a time
+  await p.click('[data-act="evNew"]'); await p.waitForTimeout(150);
+  await p.fill('#ev-name', 'البيبي'); await p.click('.emogrid [data-e="👶"]'); await p.click('[data-act="evSave"]'); await p.waitForTimeout(300);
+  await p.fill('#entry', 'عربة البيبي'); await p.press('#entry', 'Enter'); await p.waitForTimeout(300);
+  console.log('two events:', await p.evaluate(() => ({ boxes: document.querySelectorAll('.evbox').length, open: document.querySelectorAll('.evbox.open').length, openName: document.querySelector('.evbox.open b').textContent,
+    stroller: (state.events.find(e => e.id === [...window.__DB.values()].find(v => v.title === 'عربة البيبي').ev) || {}).name })));
+  await p.screenshot({ path: path.join(__dirname,'out-events-two.png'), fullPage: true });
+  await p.click('.evbox.open .evhd'); await p.waitForTimeout(200);
   await p.screenshot({ path: path.join(__dirname,'out-events-list.png') });
-  console.log('list card:', (await p.textContent('.evcard')).replace(/\s+/g, ' ').trim());
-  await p.click('.evcard'); await p.waitForTimeout(200);
+  console.log('list card:', (await p.textContent('.evbox')).replace(/\s+/g, ' ').trim(), '| open after close:', await p.evaluate(() => document.querySelectorAll('.evbox.open').length), '| placeholder:', await p.getAttribute('#entry', 'placeholder'));
+  await p.click('.evbox .evhd >> nth=0'); await p.waitForTimeout(200);
   await p.click('[data-act="evEnd"]'); await p.waitForTimeout(100); await p.click('[data-act="evEndGo"]'); await p.waitForTimeout(400);
   console.log('ended:', await p.textContent('#toast'), '| events:', JSON.stringify(await p.evaluate(() => window.__DB.get('config/events'))), '| tags left:', await p.evaluate(() => [...window.__DB.values()].filter(v => v.ev).length), '| items kept:', await p.evaluate(() => [...window.__DB.keys()].filter(k => k.startsWith('items/')).length));
   console.log('errors1c:', p.errs);
