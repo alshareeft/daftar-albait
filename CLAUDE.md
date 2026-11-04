@@ -30,7 +30,7 @@ Arabic (RTL) household app: tasks + shopping lists, shared by a family, used mos
 - Events tab: «مناسبة جديدة» always on top; each event is one box (tinted header with emoji, name, progress; chevron like the store groups) that opens in place with its items inside, grouped by category. One box open at a time (the entry bar adds to it); items show their dates as in shopping; undated items get a «+ تاريخ» button; «إضافة عناصر موجودة» links open items; event picker in the item edit sheet.
 - No auto-splitting of entries: one entry = one item.
 - No date is auto-assigned on entry except the store's current date, or a date the user spoke/typed.
-- Home: calendar (arrows: left = next month, right = previous), shrinks to one week with an animation when swiping up / scrolling the list; day list grouped by category, collapsible; full-screen focus mode for "super" (supermarket) only.
+- Home: calendar (arrows: left = next month, right = previous), shrinks to one week with an animation when swiping up / scrolling the list; day list grouped by category, collapsible; full-screen focus mode for "super" (supermarket) only, opened by a long press (~0.5s) on its group title — on home (that day's items) and in the shopping tab (the whole open list; bought items leave it). No expand icon; a short tap still opens/closes the group.
 - Shop tab: bought items disappear immediately (no undo toast); collapsible store groups; store date chip shows the date only.
 - One font family (IBM Plex Sans Arabic); light/dark toggle per device; mic button uses the browser Web Speech API (`ar-SA`) and auto-adds on final result.
 - Inputs keep 16px font (prevents iOS zoom).

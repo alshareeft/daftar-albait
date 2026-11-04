@@ -100,6 +100,28 @@ async function setup(b, opts = {}) {
   console.log('mic visible:', await p.evaluate(() => !document.querySelector('#micBtn').hidden));
   console.log('errors1:', p.errs);
   await ctx.close();
+  // 5g) supermarket full screen by long press on its title (home + shopping tab); a short tap still opens/closes the group
+  ({ ctx, p } = await setup(b));
+  await p.goto('https://app.test/'); await p.waitForTimeout(300); await p.click('#gateBtn'); await p.waitForTimeout(500);
+  for (const t of ['حليب اليوم', 'خبز اليوم', 'بيض']) { await p.fill('#entry', t); await p.press('#entry', 'Enter'); await p.waitForTimeout(250); }
+  const longPress = async sel => { const bx = await p.locator(sel).first().boundingBox(); await p.mouse.move(bx.x + bx.width / 2, bx.y + bx.height / 2); await p.mouse.down(); await p.waitForTimeout(650); await p.mouse.up(); await p.waitForTimeout(250); };
+  const homeH = '#dayList .grp-h[data-cat="super"]';
+  console.log('expand icon gone:', await p.evaluate(() => !document.querySelector('[data-act="focus"]')));
+  await p.click(homeH); await p.waitForTimeout(200);
+  console.log('short tap -> collapse, no focus:', await p.evaluate(() => ({ collapsed: document.querySelector('#dayList .grp').classList.contains('closed'), focus: !document.querySelector('#focusHost').hidden })));
+  await p.click(homeH); await p.waitForTimeout(200);
+  await longPress(homeH);
+  console.log('home long press:', await p.evaluate(() => ({ focus: !document.querySelector('#focusHost').hidden, rows: document.querySelectorAll('#focusHost .item').length, stillOpen: !document.querySelector('#dayList .grp').classList.contains('closed') })));
+  await p.click('[data-act="unfocus"]'); await p.waitForTimeout(200);
+  await p.click('nav.tabs [data-tab="shop"]'); await p.waitForTimeout(250);
+  await longPress('#view-shop .grp-h[data-cat="super"]');
+  console.log('shop long press:', await p.evaluate(() => ({ focus: !document.querySelector('#focusHost').hidden, rows: [...document.querySelectorAll('#focusHost .item .t')].map(x => x.textContent).join(','), groupOpen: !document.querySelector('#view-shop .card').classList.contains('closed') })));
+  await p.screenshot({ path: path.join(__dirname,'out-focus-shop.png') });
+  await p.click('#focusHost .item .chk >> nth=0'); await p.waitForTimeout(400);
+  console.log('bought leaves shop focus:', await p.evaluate(() => document.querySelectorAll('#focusHost .item').length));
+  await p.click('[data-act="unfocus"]'); await p.waitForTimeout(200);
+  console.log('errors1d:', p.errs);
+  await ctx.close();
   // 6) events: create, add while open (tagged, still in its store), add a date, link an existing item, untag, end
   ({ ctx, p } = await setup(b));
   await p.goto('https://app.test/'); await p.waitForTimeout(300); await p.click('#gateBtn'); await p.waitForTimeout(500);
