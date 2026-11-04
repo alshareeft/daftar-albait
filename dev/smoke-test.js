@@ -4,6 +4,8 @@ const fs = require('fs'), path = require('path');
 const APP = path.resolve(__dirname, '..'), MOCK = path.join(__dirname, 'firebase-mocks');
 const F = path.resolve(__dirname, '..', 'node_modules')+'/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-';
 const cfg = `window.DAFTAR_CONFIG = { firebase: { apiKey: "test", authDomain: "x", projectId: "x", appId: "x" }, appCheckSiteKey: "k", ai: true, aiModel: "m", voiceLang: "ar-SA", voiceAutoAdd: true, sdkVersion: "13.1.0" };`;
+// typing goes through the add panel (long press on the mic); after «أضف» it closes by itself
+async function add(p, t) { await p.evaluate(() => openCompose()); await p.fill('#entry', t); await p.press('#entry', 'Enter'); }
 async function setup(b, opts = {}) {
   const ctx = await b.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2, isMobile:true, hasTouch:true, locale:'ar-SA', timezoneId:'Asia/Riyadh', acceptDownloads:true });
   await ctx.route('https://fonts.googleapis.com/**', r => r.fulfill({ contentType:'text/css', body:[400,500,600,700].map(w=>`@font-face{font-family:"IBM Plex Sans Arabic";font-weight:${w};src:url(https://local.font/${w}.woff2)}`).join('') }));
@@ -26,7 +28,7 @@ async function setup(b, opts = {}) {
   await p.click('#gateBtn'); await p.waitForTimeout(500);
   console.log('gate hidden:', await p.evaluate(() => document.querySelector('#gate').hidden), '| sync:', await p.getAttribute('#sync','class'), '| appcheck:', await p.evaluate(() => !!window.__appcheck));
   // 2) add items
-  for (const t of ['حليب', 'ترا الغاز قرب يخلص', 'شي للصداع']) { await p.fill('#entry', t); await p.press('#entry', 'Enter'); await p.waitForTimeout(300); console.log(t, '->', await p.textContent('#toast')); }
+  for (const t of ['حليب', 'ترا الغاز قرب يخلص', 'شي للصداع']) { await add(p, t); await p.waitForTimeout(300); console.log(t, '->', await p.textContent('#toast')); }
   await p.waitForTimeout(300);
   const items = await p.evaluate(() => [...window.__DB].filter(([k]) => k.startsWith('items/')).map(([k, v]) => [v.title, v.cat, v.aiCat || false]));
   console.log('db items:', JSON.stringify(items));
@@ -36,11 +38,11 @@ async function setup(b, opts = {}) {
   console.log('shop items after buy:', await p.evaluate(() => document.querySelectorAll('#view-shop .item').length), '| history:', await p.evaluate(() => JSON.stringify(window.__DB.get('history/recent'))));
   console.log('milk doc:', await p.evaluate(() => { const v=[...window.__DB.values()].find(v=>v.title==='حليب'); return v && [v.done, typeof v.doneAt]; }));
   // 4) suggestion
-  await p.fill('#entry', 'حل'); await p.waitForTimeout(150);
+  await p.evaluate(() => openCompose()); await p.fill('#entry', 'حل'); await p.waitForTimeout(150);
   console.log('suggest:', await p.evaluate(() => [...document.querySelectorAll('.sg')].map(x=>x.textContent).join(',')));
-  await p.fill('#entry', '');
+  await p.fill('#entry', ''); await p.evaluate(() => closeCompose()); await p.waitForTimeout(100);
   // 5) categories tab: backup card, export download, import
-  await p.click('nav.tabs [data-tab="cats"]'); await p.waitForTimeout(200);
+  await p.evaluate(() => goTab('cats')); await p.waitForTimeout(200);
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('[data-act="export"]')]);
   console.log('export file:', dl.suggestedFilename());
   await p.setInputFiles('#importFile', path.join(__dirname,'sample-data.json')); await p.waitForTimeout(200);
@@ -56,7 +58,7 @@ async function setup(b, opts = {}) {
     const el = document.querySelector(sel), mk = x => new Touch({ identifier: 1, target: el, clientX: x, clientY: y });
     el.dispatchEvent(new TouchEvent('touchstart', { touches: [mk(x0)], changedTouches: [mk(x0)], bubbles: true }));
     el.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [mk(x1)], bubbles: true }));
-    return document.querySelector('nav.tabs [aria-selected="true"]').dataset.tab; }, [x0, x1, sel, y]);
+    return document.querySelector('nav.tabs [aria-current="page"]').dataset.tab; }, [x0, x1, sel, y]);
   const tabSeq = [await swipe(100, 260, '#view-home'), await swipe(100, 260, '#view-shop'), await swipe(300, 120, '#view-tasks'), await swipe(300, 120, '#view-shop'), await swipe(300, 120, '#view-home')];
   console.log('swipe tabs:', tabSeq.join(' > '), '| edge ignored:', await swipe(8, 200, '#view-home'), '| entry ignored:', await swipe(100, 260, '#entry'), '| short ignored:', await swipe(150, 190, '#view-home'));
   console.log('overscroll:', await p.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY + '/' + getComputedStyle(document.body).overscrollBehaviorY));
@@ -70,14 +72,14 @@ async function setup(b, opts = {}) {
     await S.setDoc(S.doc(null, 'config/trips'), { super: day });
     return day; });
   await p.click('nav.tabs [data-tab="shop"]'); await p.waitForTimeout(300);   // listeners fire on the next write; force one
-  await p.fill('#entry', 'خبز'); await p.press('#entry', 'Enter'); await p.waitForTimeout(400);
+  await add(p, 'خبز'); await p.waitForTimeout(400);
   console.log('trip kept while items follow it:', JSON.stringify(await p.evaluate(() => window.__DB.get('config/trips'))), '| toast:', await p.textContent('#toast'));
   await p.click('#view-shop .item .chk >> nth=0'); await p.waitForTimeout(300); await p.click('#view-shop .item .chk >> nth=0'); await p.waitForTimeout(400);
-  await p.fill('#entry', 'حليب'); await p.press('#entry', 'Enter'); await p.waitForTimeout(400);
+  await add(p, 'حليب'); await p.waitForTimeout(400);
   console.log('after all bought, new item:', await p.textContent('#toast'), '| trips:', JSON.stringify(await p.evaluate(() => window.__DB.get('config/trips'))));
   // 5d) tasks tab: one flat list, no category header
   await p.click('nav.tabs [data-tab="tasks"]'); await p.waitForTimeout(250);
-  console.log('tasks:', await p.evaluate(() => ({ headers: document.querySelectorAll('#view-tasks .group-h').length, rows: document.querySelectorAll('#view-tasks .card:not(:has(details)) .item').length, label: document.querySelector('#view-tasks .row')?.textContent })));
+  console.log('tasks:', await p.evaluate(() => ({ headers: document.querySelectorAll('#view-tasks .group-h').length, rows: document.querySelectorAll('#view-tasks .card:not(:has(details)) .item').length, label: document.querySelector('#view-tasks .psub')?.textContent })));
   await p.screenshot({ path: path.join(__dirname,'out-tasks.png') });
   // 5e) weekday phrases: the date words leave the title
   console.log('weekday parse:', JSON.stringify(await p.evaluate(() => {
@@ -87,9 +89,9 @@ async function setup(b, opts = {}) {
             P('بنادول هذا السبت', sat), P('بنادول السبت', sat), P('موعد الأسنان الخميس اللي جاي', fri)]; })));
   // 5f) other stores date each item; supermarket keeps one list date
   await p.click('nav.tabs [data-tab="shop"]'); await p.waitForTimeout(200);
-  await p.fill('#entry', 'بنادول بكرة'); await p.press('#entry', 'Enter'); await p.waitForTimeout(400);
+  await add(p, 'بنادول بكرة'); await p.waitForTimeout(400);
   const t1 = await p.textContent('#toast');
-  await p.fill('#entry', 'فيتامين'); await p.press('#entry', 'Enter'); await p.waitForTimeout(400);
+  await add(p, 'فيتامين'); await p.waitForTimeout(400);
   console.log('pharma:', t1, '/', await p.textContent('#toast'), '| pharma date chip:', await p.evaluate(() => [...document.querySelectorAll('#view-shop .card')].filter(c => c.textContent.includes('صيدلية')).map(c => !!c.querySelector('.trip'))[0]),
     '| super chip:', await p.evaluate(() => [...document.querySelectorAll('#view-shop .card')].filter(c => c.textContent.includes('سوبرماركت')).map(c => !!c.querySelector('.trip'))[0]));
   await p.click('#view-shop .item .txt:has-text("فيتامين")'); await p.waitForTimeout(200);
@@ -103,38 +105,71 @@ async function setup(b, opts = {}) {
   // 5g) supermarket full screen by long press on its title (home + shopping tab); a short tap still opens/closes the group
   ({ ctx, p } = await setup(b));
   await p.goto('https://app.test/'); await p.waitForTimeout(300); await p.click('#gateBtn'); await p.waitForTimeout(500);
-  for (const t of ['حليب اليوم', 'خبز اليوم', 'بيض']) { await p.fill('#entry', t); await p.press('#entry', 'Enter'); await p.waitForTimeout(250); }
+  for (const t of ['حليب اليوم', 'خبز اليوم', 'بيض']) { await add(p, t); await p.waitForTimeout(250); }
   const longPress = async sel => { const bx = await p.locator(sel).first().boundingBox(); await p.mouse.move(bx.x + bx.width / 2, bx.y + bx.height / 2); await p.mouse.down(); await p.waitForTimeout(650); await p.mouse.up(); await p.waitForTimeout(250); };
-  const homeH = '#dayList .grp-h[data-cat="super"]';
-  console.log('expand icon gone:', await p.evaluate(() => !document.querySelector('[data-act="focus"]')));
-  await p.click(homeH); await p.waitForTimeout(200);
-  console.log('short tap -> collapse, no focus:', await p.evaluate(() => ({ collapsed: document.querySelector('#dayList .grp').classList.contains('closed'), focus: !document.querySelector('#focusHost').hidden })));
-  await p.click(homeH); await p.waitForTimeout(200);
-  await longPress(homeH);
-  console.log('home long press:', await p.evaluate(() => ({ focus: !document.querySelector('#focusHost').hidden, rows: document.querySelectorAll('#focusHost .item').length, stillOpen: !document.querySelector('#dayList .grp').classList.contains('closed') })));
+  const homeH = '#dayList .triprow[data-cat="super"]';
+  console.log('expand icon gone:', await p.evaluate(() => !document.querySelector('[data-act="focus"]')), '| trip row:', (await p.textContent(homeH)).replace(/\s+/g, ' ').trim());
+  await p.screenshot({ path: path.join(__dirname,'out-home2.png') });
+  await p.click(homeH); await p.waitForTimeout(250);
+  console.log('home trip row tap -> full screen:', await p.evaluate(() => ({ focus: !document.querySelector('#focusHost').hidden, rows: document.querySelectorAll('#focusHost .item').length })));
   await p.click('[data-act="unfocus"]'); await p.waitForTimeout(200);
+  await longPress(homeH);
+  console.log('home long press:', await p.evaluate(() => ({ focus: !document.querySelector('#focusHost').hidden, rows: document.querySelectorAll('#focusHost .item').length })));
+  await p.click('[data-act="unfocus"]'); await p.waitForTimeout(200);
+  // mic: long press opens typing; Esc closes; the bar has four sections + the mic
+  await longPress('#micBtn');
+  console.log('mic long press -> typing:', await p.evaluate(() => ({ composing: document.body.classList.contains('composing'), focused: document.activeElement.id, dock: getComputedStyle(document.querySelector('.dock')).display })));
+  await p.fill('#entry', 'ولاعة السبت'); await p.waitForTimeout(150);
+  await p.screenshot({ path: path.join(__dirname,'out-type.png') });
+  await p.fill('#entry', '');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+  console.log('esc closes typing:', await p.evaluate(() => !document.body.classList.contains('composing')), '| bar:', await p.evaluate(() => [...document.querySelectorAll('nav.tabs > button')].map(b => b.textContent.trim() || 'mic').join(',')));
+  // calendar: week by default, «عرض الشهر» opens the month
+  console.log('calendar:', await p.evaluate(() => { const w = document.querySelectorAll('#calGrid .day').length; document.querySelector('#calToggle').click(); const m = document.querySelectorAll('#calGrid .day').length; return w + ' -> ' + m; }));
+  await p.screenshot({ path: path.join(__dirname,'out-month.png') });
+  await p.click('#calToggle');
+  // menu: inbox dot, inbox + categories
+  await add(p, 'شي غريب'); await p.waitForTimeout(300);
+  console.log('menu dot:', await p.evaluate(() => !document.querySelector('#menuDot').hidden));
+  await p.click('#menuBtn'); await p.waitForTimeout(200);
+  await p.screenshot({ path: path.join(__dirname,'out-menu.png') });
+  await p.click('.mrow[data-to="inbox"]'); await p.waitForTimeout(300);
+  console.log('menu -> inbox:', await p.evaluate(() => state.tab + ' | sheet closed: ' + !document.querySelector('#sheetHost .sheet')));
+  await p.goBack(); await p.waitForTimeout(300);
+  // supermarket: 5 items then «و N أصناف أخرى»
+  for (const t of ['طماطم', 'رز', 'سكر', 'شاي', 'ملح']) await add(p, t);
+  await p.waitForTimeout(300);
   await p.click('nav.tabs [data-tab="shop"]'); await p.waitForTimeout(250);
+  console.log('super more:', await p.evaluate(() => document.querySelectorAll('#view-shop .store .item').length + ' + ' + document.querySelector('[data-act="superMore"]')?.textContent.trim()));
+  await p.screenshot({ path: path.join(__dirname,'out-shop3.png') });
+  await p.click('[data-act="superMore"]'); await p.waitForTimeout(200);
+  console.log('super all:', await p.evaluate(() => document.querySelectorAll('#view-shop .store .item').length));
   await longPress('#view-shop .grp-h[data-cat="super"]');
-  console.log('shop long press:', await p.evaluate(() => ({ focus: !document.querySelector('#focusHost').hidden, rows: [...document.querySelectorAll('#focusHost .item .t')].map(x => x.textContent).join(','), groupOpen: !document.querySelector('#view-shop .card').classList.contains('closed') })));
+  console.log('shop long press:', await p.evaluate(() => ({ focus: !document.querySelector('#focusHost').hidden, rows: [...document.querySelectorAll('#focusHost .item .t')].map(x => x.textContent).join(','), groupOpen: !document.querySelector('#view-shop .store').classList.contains('closed') })));
   await p.screenshot({ path: path.join(__dirname,'out-focus-shop.png') });
   await p.click('#focusHost .item .chk >> nth=0'); await p.waitForTimeout(400);
   console.log('bought leaves shop focus:', await p.evaluate(() => document.querySelectorAll('#focusHost .item').length));
   await p.goBack(); await p.waitForTimeout(300);
   console.log('back closes long-press focus:', await p.evaluate(() => ({ focus: !document.querySelector('#focusHost').hidden, tab: state.tab, url: location.href })));
+  // night look
+  await p.evaluate(() => { document.documentElement.setAttribute('data-theme', 'dark'); goTab('home'); });
+  await p.waitForTimeout(300); await p.screenshot({ path: path.join(__dirname,'out-home-dark.png') });
+  await p.evaluate(() => goTab('shop')); await p.waitForTimeout(300); await p.screenshot({ path: path.join(__dirname,'out-shop-dark.png') });
+  await p.evaluate(() => { document.documentElement.removeAttribute('data-theme'); try { localStorage.removeItem('daftar-theme'); } catch (e) {} });
   console.log('errors1d:', p.errs);
   await ctx.close();
   // 6) events: create, add while open (tagged, still in its store), add a date, link an existing item, untag, end
   ({ ctx, p } = await setup(b));
   await p.goto('https://app.test/'); await p.waitForTimeout(300); await p.click('#gateBtn'); await p.waitForTimeout(500);
-  for (const t of ['حليب', 'اتصل بالسباك بكرة']) { await p.fill('#entry', t); await p.press('#entry', 'Enter'); await p.waitForTimeout(250); }
+  for (const t of ['حليب', 'اتصل بالسباك بكرة']) { await add(p, t); await p.waitForTimeout(250); }
   await p.click('nav.tabs [data-tab="events"]'); await p.waitForTimeout(200);
   await p.screenshot({ path: path.join(__dirname,'out-events-empty.png') });
   await p.click('[data-act="evNew"]'); await p.waitForTimeout(150);
   await p.fill('#ev-name', 'طلعة الشوي'); await p.click('.emogrid [data-e="🍖"]');
   await p.screenshot({ path: path.join(__dirname,'out-event-sheet.png') });
   await p.click('[data-act="evSave"]'); await p.waitForTimeout(300);
-  console.log('event created:', await p.textContent('#toast'), '| open:', await p.textContent('.evbox.open .evhd b'), '| placeholder:', await p.getAttribute('#entry', 'placeholder'));
-  for (const t of ['فحم', 'لحم غنم', 'دلة قهوة أمازون السبت', 'احجز المكان']) { await p.fill('#entry', t); await p.press('#entry', 'Enter'); await p.waitForTimeout(300); }
+  console.log('event created:', await p.textContent('#toast'), '| open:', await p.textContent('.evcard.open .evhd2 h3'), '| placeholder:', await p.getAttribute('#entry', 'placeholder'));
+  for (const t of ['فحم', 'لحم غنم', 'دلة قهوة أمازون السبت', 'احجز المكان']) { await add(p, t); await p.waitForTimeout(300); }
   console.log('add in event:', await p.textContent('#toast'));
   console.log('tagged:', JSON.stringify(await p.evaluate(() => [...window.__DB].filter(([k, v]) => k.startsWith('items/') && v.ev).map(([k, v]) => v.title + ':' + v.cat))));
   const addBtns = await p.evaluate(() => [...document.querySelectorAll('#view-events .adddate')].map(b => b.closest('.item').querySelector('.t').textContent));
@@ -146,19 +181,19 @@ async function setup(b, opts = {}) {
   await p.check('.linklist label:has-text("حليب") input'); await p.click('[data-act="evLinkSave"]'); await p.waitForTimeout(300);
   console.log('linked:', await p.textContent('#toast'), '| milk ev:', await p.evaluate(() => !![...window.__DB.values()].find(v => v.title === 'حليب').ev));
   await p.screenshot({ path: path.join(__dirname,'out-event-open.png'), fullPage: true });
-  console.log('badge events (events, not items):', await p.textContent('#badge-events'));
+  console.log('events sub:', await p.textContent('#view-events .psub'));
   // still in its store, with the event pill
   await p.click('nav.tabs [data-tab="shop"]'); await p.waitForTimeout(250);
   console.log('shop event mark is emoji only:', await p.evaluate(() => [...document.querySelectorAll('#view-shop .evmark')].map(x => x.textContent).join('') + ' | name hidden: ' + ![...document.querySelectorAll('#view-shop .meta')].some(m => m.textContent.includes('طلعة'))));
   // header + tabs stay pinned while the list scrolls
-  await p.evaluate(() => { for (let i = 0; i < 25; i++) state.items.push({ id: 'z' + i, title: 'صنف ' + i, cat: 'super', date: null, pin: false, done: false, priority: 'normal' }); render(); window.scrollTo(0, 900); });
+  await p.evaluate(() => { for (let i = 0; i < 25; i++) state.items.push({ id: 'z' + i, title: 'صنف ' + i, cat: 'super', date: null, pin: false, done: false, priority: 'normal' }); state.superAll = true; render(); window.scrollTo(0, 900); });
   await p.waitForTimeout(200);
-  console.log('pinned header:', await p.evaluate(() => ({ scrollY: Math.round(scrollY), datesTop: Math.round(document.querySelector('#dates').getBoundingClientRect().top), tabsTop: Math.round(document.querySelector('nav.tabs').getBoundingClientRect().top) })));
+  console.log('pinned header:', await p.evaluate(() => ({ scrollY: Math.round(scrollY), brandTop: Math.round(document.querySelector('.brand').getBoundingClientRect().top), tabsTop: Math.round(document.querySelector('nav.tabs').getBoundingClientRect().top) })));
   await p.screenshot({ path: path.join(__dirname,'out-pinned.png') });
   await p.evaluate(() => { state.items = state.items.filter(it => !String(it.id).startsWith('z')); window.scrollTo(0, 0); render(); });
   console.log('shop shows event pill:', await p.evaluate(() => [...document.querySelectorAll('#view-shop .item')].filter(x => x.textContent.includes('🍖')).map(x => x.querySelector('.t').textContent).join(',')),
     '| placeholder:', await p.getAttribute('#entry', 'placeholder'));
-  await p.fill('#entry', 'بيض'); await p.press('#entry', 'Enter'); await p.waitForTimeout(300);
+  await add(p, 'بيض'); await p.waitForTimeout(300);
   console.log('outside event not tagged:', await p.evaluate(() => !([...window.__DB.values()].find(v => v.title === 'بيض') || {}).ev));
   // untag from the edit sheet
   await p.click('#view-shop .item .txt:has-text("دلة قهوة")'); await p.waitForTimeout(150);
@@ -169,14 +204,16 @@ async function setup(b, opts = {}) {
   // a second event: the new button stays visible; only one box is open at a time
   await p.click('[data-act="evNew"]'); await p.waitForTimeout(150);
   await p.fill('#ev-name', 'البيبي'); await p.click('.emogrid [data-e="👶"]'); await p.click('[data-act="evSave"]'); await p.waitForTimeout(300);
-  await p.fill('#entry', 'عربة البيبي'); await p.press('#entry', 'Enter'); await p.waitForTimeout(300);
-  console.log('two events:', await p.evaluate(() => ({ boxes: document.querySelectorAll('.evbox').length, open: document.querySelectorAll('.evbox.open').length, openName: document.querySelector('.evbox.open b').textContent,
+  await add(p, 'عربة البيبي'); await p.waitForTimeout(300);
+  console.log('two events:', await p.evaluate(() => ({ boxes: document.querySelectorAll('.evcard').length, open: document.querySelectorAll('.evcard.open').length, openName: document.querySelector('.evcard.open h3').textContent,
     stroller: (state.events.find(e => e.id === [...window.__DB.values()].find(v => v.title === 'عربة البيبي').ev) || {}).name })));
   await p.screenshot({ path: path.join(__dirname,'out-events-two.png'), fullPage: true });
-  await p.click('.evbox.open .evhd'); await p.waitForTimeout(200);
+  await p.click('.evcard.open .evhd2'); await p.waitForTimeout(200);
   await p.screenshot({ path: path.join(__dirname,'out-events-list.png') });
-  console.log('list card:', (await p.textContent('.evbox')).replace(/\s+/g, ' ').trim(), '| open after close:', await p.evaluate(() => document.querySelectorAll('.evbox.open').length), '| placeholder:', await p.getAttribute('#entry', 'placeholder'));
-  await p.click('.evbox .evhd >> nth=0'); await p.waitForTimeout(200);
+  console.log('list card:', (await p.textContent('.evcard')).replace(/\s+/g, ' ').trim(), '| open after close:', await p.evaluate(() => document.querySelectorAll('.evcard.open').length), '| placeholder:', await p.getAttribute('#entry', 'placeholder'));
+  await p.click('.evcard .evhd2 >> nth=0'); await p.waitForTimeout(200);
+  await p.screenshot({ path: path.join(__dirname,'out-event-open2.png') });
+  await p.click('[data-act="evMenu"]'); await p.waitForTimeout(150);
   await p.click('[data-act="evEnd"]'); await p.waitForTimeout(100); await p.click('[data-act="evEndGo"]'); await p.waitForTimeout(400);
   console.log('ended:', await p.textContent('#toast'), '| events:', JSON.stringify(await p.evaluate(() => window.__DB.get('config/events'))), '| tags left:', await p.evaluate(() => [...window.__DB.values()].filter(v => v.ev).length), '| items kept:', await p.evaluate(() => [...window.__DB.keys()].filter(k => k.startsWith('items/')).length));
   console.log('errors1c:', p.errs);
@@ -198,7 +235,7 @@ async function setup(b, opts = {}) {
   console.log('errors2:', p.errs);
   await ctx.close();
   // 7) #voice link (already signed in on load)
-  ({ ctx, p } = await setup(b, { init: () => { window.webkitSpeechRecognition = class { start(){ window.__srStarted = true; setTimeout(() => { this.onresult && this.onresult({ results: [Object.assign([{ transcript: 'بنادول' }], { isFinal: true })] }); this.onend && this.onend(); }, 50); } stop(){} }; } }));
+  ({ ctx, p } = await setup(b, { init: () => { window.SpeechRecognition = window.webkitSpeechRecognition = class { start(){ window.__srStarted = true; setTimeout(() => { this.onresult && this.onresult({ results: [Object.assign([{ transcript: 'بنادول' }], { isFinal: true })] }); this.onend && this.onend(); }, 50); } stop(){} }; } }));
   await p.goto('https://app.test/#voice'); await p.waitForTimeout(300); await p.click('#gateBtn'); await p.waitForTimeout(600);
   console.log('voice: started', await p.evaluate(() => !!window.__srStarted), '| toast:', await p.textContent('#toast'), '| hash:', await p.evaluate(() => location.hash));
   console.log('errors3:', p.errs);

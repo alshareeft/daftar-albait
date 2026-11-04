@@ -80,7 +80,7 @@ const badge = `<style>
 <script>
 document.documentElement.lang = ${JSON.stringify(lang)}; document.documentElement.dir = ${JSON.stringify(dir)};
 (() => { const b = document.getElementById("pvBadge"); let t;
-  const place = () => { const d = document.querySelector(".dock"); if (d) document.documentElement.style.setProperty("--pv-bottom", (d.offsetHeight + 8) + "px"); };
+  const place = () => { const d = document.querySelector("nav.tabs"); if (d) document.documentElement.style.setProperty("--pv-bottom", (d.offsetHeight + 8) + "px"); };
   addEventListener("load", place); addEventListener("resize", place); setTimeout(place, 500);
   b.onclick = () => { if (b.classList.contains("arm")) return window.__resetPreview();
     b.classList.add("arm"); b.textContent = "اضغط مجدداً لإعادة البيانات التجريبية";

@@ -19,23 +19,26 @@ Arabic (RTL) household app: tasks + shopping lists, shared by a family, used mos
   - Bought shop items stay on the calendar on the day bought (`doneAt`) for 365 days, then are swept.
 - `config/categories`: `{list:[{id,name,kind:"shop"|"task",color,kw:[]}]}` (absent → `DEFAULT_CATS` in code).
 - `config/trips`: `{<catId>: "YYYY-MM-DD"}`.
-- `config/events`: `{list:[{id,name,emoji,createdAt}]}` — المناسبات. An event is a tag (`item.ev`), never a category: tagged items stay in their store/tasks as usual. Adding from the dock while an event is open tags the new item. Ending an event deletes it and clears `ev` on its items.
+- `config/events`: `{list:[{id,name,emoji,createdAt}]}` — المناسبات. An event is a tag (`item.ev`), never a category: tagged items stay in their store/tasks as usual. Adding (mic or typing) while an event is open tags the new item. Ending an event deletes it and clears `ev` on its items.
 - `history/recent`: `{items:{<normalizedName>:{t,c,n,d}}}` — purchase history for entry suggestions (365 days). Written with merge.
 - Loading: open items (`done==false`) live; done items only from the earliest visible calendar day (`ensureDoneFrom`) to save free-tier reads.
 
 ## UX decisions already made by the owner (keep them)
-- Tabs order: الرئيسية، المشتريات، المهام، المناسبات، الوارد، التصنيفات. Badge counts on tabs. The date row + tabs (`.masthead`) stay pinned; only the content below scrolls. Events tab badge = number of events; elsewhere an item's event shows as its emoji only. Swipe sideways switches tabs; pull-to-refresh is off.
+- Look (approved Nov 2026, "المزيج"): calm ledger style — light `#f4f3f1` / night `#0b0d0c` tokens, green accent `#1f5c4d` (night `#6dbb9f`), black primary buttons, 8px radii, one font. Category colours only as small marks (checkbox border, day segments, store square); night brightens them.
+- Top bar: logo mark + «دفتر البيت» + sync dot, theme toggle, menu (☰). The menu sheet holds الوارد and التصنيفات/النسخ الاحتياطي (a dot on ☰ when the inbox has items). Each page has a large title + one-line summary.
+- Bottom bar (fixed): اليوم، المشتريات، [mic]، المهام، المناسبات. No badge numbers. The mic sits in the middle (60px green circle): tap = voice (Web Speech, `ar-SA`, auto-adds on final result; the add panel shows what is heard with «اكتب بدلاً من ذلك»); long press (~0.45s) = the typing panel (`body.composing`, a "compose" back-layer). Typing panel: textarea, preview/suggestions, «أضف», mic switch; closes itself after adding. Swipe sideways moves between the four bar sections; pull-to-refresh is off. Inbox/categories are tabs reached only from the menu (`goTab`).
 - Tasks tab: one flat list (no category grouping); each task has its own date.
 - Priority `"urgent"` is labelled «مهم» in the UI (value unchanged).
-- Events tab: «مناسبة جديدة» always on top; each event is one box (tinted header with emoji, name, progress; chevron like the store groups) that opens in place with its items inside, grouped by category. One box open at a time (the entry bar adds to it); items show their dates as in shopping; undated items get a «+ تاريخ» button; «إضافة عناصر موجودة» links open items; event picker in the item edit sheet.
+- Events tab: title + «مناسبة جديدة» on top; each event is a plain card like the other pages (emoji, name, «تم x من n», thin green progress line, chevron) that opens in place; one open at a time (the mic adds to it). Inside: one flat list sorted by category, neutral checkboxes, the category as a small grey caption, the date at the end or «+ تاريخ»; footer «إضافة عناصر موجودة» + ⋯ (sheet: تعديل / إنهاء with confirm). Event picker in the item edit sheet.
 - No auto-splitting of entries: one entry = one item.
 - No date is auto-assigned on entry except the store's current date, or a date the user spoke/typed.
-- Home: calendar (arrows: left = next month, right = previous), shrinks to one week with an animation when swiping up / scrolling the list; day list grouped by category, collapsible; full-screen focus mode for "super" (supermarket) only, opened by a long press (~0.5s) on its group title — on home (that day's items) and in the shopping tab (the whole open list; bought items leave it). No expand icon; a short tap still opens/closes the group.
-- Shop tab: bought items disappear immediately (no undo toast); collapsible store groups; store date chip shows the date only.
-- One font family (IBM Plex Sans Arabic); light/dark toggle per device; mic button uses the browser Web Speech API (`ar-SA`) and auto-adds on final result.
+- Home (اليوم): week strip by default (weekday + number; today = solid ink, selected = ring; a full-width bottom line split into up to 3 category colours + grey for more), «عرض الشهر»/«عرض الأسبوع» toggles the month; arrows: left = next, right = previous. Day card: count, the supermarket as one row «مشوار السوبرماركت · N أصناف» (tap or long press = its full-screen list for that day), other items flat, inbox row «… في الوارد بلا تصنيف · صنّفها» on today. Then «القادم هذا الأسبوع»: next 6 days grouped by date (supermarket again as one row → whole open list).
+- Full-screen focus mode is for "super" only: from the home trip row, or a long press on its store title in the shopping tab (whole open list; bought items leave it). A short tap on the store title still opens/closes it.
+- Shop tab: bought items disappear immediately (no undo toast); collapsible store cards (name + «N أصناف»); supermarket date row «السبت 7 نوفمبر · بعد 3 أيام | تغيير»; the supermarket shows 5 items + «و N أصناف أخرى» when it has more than 6 (other stores show all).
+- One font family (IBM Plex Sans Arabic); light/dark toggle per device. Toasts appear just above the bottom bar.
 - Inputs keep 16px font (prevents iOS zoom).
-- Back gesture: every overlay (edit sheet, full-screen list, voice prompt) and every non-home tab is a history entry (`pushLayer`/`popLayer`, `goTab`), so back closes the overlay or returns home instead of leaving the app. Sheets with unsaved changes, and unsaved category edits, ask before discarding.
-- Accessibility: tabs are a real tablist (arrow keys), sheets are modal dialogs that return focus, checkboxes have ~44px touch targets, Arabic counts use `count(n, W_ITEM)` (plural forms).
+- Back gesture: every overlay (edit sheet, menu, typing panel, full-screen list, voice prompt) and every non-home tab is a history entry (`pushLayer`/`popLayer`, `goTab`), so back closes the overlay or returns home instead of leaving the app. Sheets with unsaved changes, and unsaved category edits, ask before discarding.
+- Accessibility: the bottom bar is a nav with `aria-current="page"`, sheets are modal dialogs that return focus, checkboxes have ~44px touch targets, Arabic counts use `count(n, W_ITEM)` (plural forms).
 
 ## Working rules
 - Write user-facing text in Arabic (MSA, short).
