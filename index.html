@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>دفتر البيت</title>
-<meta name="theme-color" content="#1f5c4d">
+<meta name="theme-color" content="#f2f3ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131714" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="دفتر البيت">
@@ -13,11 +14,14 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: one-column phone app — date header, calendar card, agenda; quick-entry dock pinned to the bottom; tabs as a segmented bar under the header */
 :root{
-  --bg:#f2f3ee; --surface:#fdfdfb; --sunken:#e9ebe4; --ink:#1c231f; --muted:#667068; --line:#dcdfd6;
+  --bg:#f2f3ee; --surface:#fdfdfb; --sunken:#e9ebe4; --ink:#1c231f; --muted:#5d665f; --line:#dcdfd6; --on-urgent:#ffffff;
   --accent:#1f5c4d; --accent-ink:#ffffff; --accent-soft:#dbe9e3; --danger:#b42318; --urgent:#c2410c;
   --cal-bg:#e2ebe6; --cal-line:#cfdcd5; --cal-cell:#f8fbf9;
   --f-display:"IBM Plex Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif;
@@ -26,11 +30,11 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#131714; --surface:#1b211d; --sunken:#232a25; --ink:#e7ebe5; --muted:#9aa49c; --line:#2d3530;
-  --accent:#6dbb9f; --accent-ink:#0f1a15; --accent-soft:#22362f; --danger:#f2786d; --urgent:#fb923c;
+  --accent:#6dbb9f; --accent-ink:#0f1a15; --accent-soft:#22362f; --danger:#f2786d; --urgent:#fb923c; --on-urgent:#1c1007;
   --cal-bg:#172b22; --cal-line:#264238; --cal-cell:#223a2f; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#131714; --surface:#1b211d; --sunken:#232a25; --ink:#e7ebe5; --muted:#9aa49c; --line:#2d3530;
-  --accent:#6dbb9f; --accent-ink:#0f1a15; --accent-soft:#22362f; --danger:#f2786d; --urgent:#fb923c;
+  --accent:#6dbb9f; --accent-ink:#0f1a15; --accent-soft:#22362f; --danger:#f2786d; --urgent:#fb923c; --on-urgent:#1c1007;
   --cal-bg:#172b22; --cal-line:#264238; --cal-cell:#223a2f; color-scheme:dark}
 *{box-sizing:border-box}
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -42,6 +46,26 @@ html{font-size:14.5px}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1rem;line-height:1.5;direction:rtl;-webkit-tap-highlight-color:transparent}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
+a,button,input,select,textarea,label,summary{touch-action:manipulation}
+select option{background-color:var(--surface);color:var(--ink)}
+h1,h2,h3{text-wrap:balance}
+/* press feedback (the default tap highlight is off): filled controls darken, plain ones dim */
+button:not(:disabled):active{opacity:.6}
+.btn:not(:disabled):active,.addbtn:not(:disabled):active,.iconbtn:not(:disabled):active,.micbtn:active,.ghost:not(:disabled):active,.cq:not(:disabled):active,.sg:active,.day:active,.chk:not(:disabled):active,nav.tabs button:active,.trip:not(:disabled):active,.talk button:active{opacity:1;filter:brightness(.88)}
+@media (hover:hover){
+  .btn:not(:disabled):hover,.addbtn:not(:disabled):hover,.iconbtn:not(:disabled):hover,.ghost:not(:disabled):hover,.cq:not(:disabled):hover,.sg:hover,.day:hover,nav.tabs button:hover,.trip:not(:disabled):hover,.micbtn:hover,.adddate:hover,.emogrid button:hover{filter:brightness(.95)}
+  .item .txt:hover .t,.grp-h:hover .gname,.evhd:hover b{text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skip{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));inset-inline-start:8px;z-index:80;background:var(--accent);color:var(--accent-ink);padding:8px 14px;border-radius:10px;transform:translateY(-200%)}
+.skip:focus{transform:none}
+/* keep a focused control clear of the pinned header and the entry bar */
+html{scroll-padding-top:var(--mast-h,0px);scroll-padding-bottom:var(--dock-h,0px)}
+.ferr{color:var(--danger);font-size:.8rem}
+/* containers that receive focus only to move the reading position: no ring (their controls keep theirs) */
+.sheet:focus,main:focus,#focusHost:focus{outline:none}
+[aria-invalid="true"]{border-color:var(--danger)!important}
+.discard{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--bg)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .wrap{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:10px 170px}
 header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -63,7 +87,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 nav.tabs{background:var(--bg);margin-top:12px;padding-block:8px;display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
 nav.tabs button{border:0;background:var(--sunken);border-radius:10px;padding:9px 4px;font-size:.88rem;font-weight:500;position:relative;min-width:0}
 nav.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
-.badge{position:absolute;top:-8px;left:-3px;box-shadow:0 0 0 2px var(--bg);min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--urgent);color:#fff;font-size:.72rem;line-height:20px;font-variant-numeric:tabular-nums}
+.badge{position:absolute;top:-8px;left:-3px;box-shadow:0 0 0 2px var(--bg);min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--urgent);color:var(--on-urgent);font-size:.72rem;line-height:20px;font-variant-numeric:tabular-nums}
 
 section.view{display:flex;flex-direction:column;gap:14px;margin-top:6px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
@@ -136,7 +160,8 @@ body.is-focus{overflow:hidden}
 .grid7{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .dow{font-size:.72rem;color:var(--muted);text-align:center;padding-bottom:2px}
 .day{border:0;background:var(--sunken);border-radius:10px;aspect-ratio:5/4;max-width:100%;padding:3px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;line-height:1.2;font-variant-numeric:tabular-nums;font-size:.9rem;min-width:0}
-.day.out{opacity:.35}
+.day.out:not(.sel){color:var(--muted);background:transparent!important}
+.day.out .dots{opacity:.5}
 .day.today{box-shadow:inset 0 0 0 2px var(--accent)}
 .day.sel{background:var(--accent);color:var(--accent-ink)}
 .dots{display:flex;flex-wrap:nowrap;overflow:hidden;justify-content:center;gap:2px;max-width:100%;min-height:7px;height:7px}
@@ -152,6 +177,8 @@ body.is-focus{overflow:hidden}
 .list .item:first-child{border-top:0}
 .chk{flex:none;width:26px;height:26px;border-radius:8px;border:2px solid var(--c,var(--muted));background:transparent;display:grid;place-items:center;color:#fff;font-size:.9rem;padding:0}
 .chk.on{background:var(--c,var(--muted))}
+.chk{position:relative}
+.chk::after{content:"";position:absolute;inset:-11px -12px}   /* ≈44px touch target; the visible box keeps its size */
 .item .txt{flex:1;min-width:0;display:flex;flex-direction:column;border:0;background:none;text-align:right;padding:0}
 .item .t{overflow-wrap:anywhere}
 .item.done .t{text-decoration:line-through;color:var(--muted)}
@@ -189,7 +216,7 @@ body.is-focus{overflow:hidden}
 .emogrid button{font-size:1.3rem;line-height:1;aspect-ratio:1;max-width:100%;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:0}
 .emogrid button.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
 .evmark{font-size:.95rem;line-height:1}
-.linklist{display:flex;flex-direction:column;max-height:50vh;overflow:auto}
+.linklist{display:flex;flex-direction:column;max-height:50vh;overflow:auto;overscroll-behavior:contain}
 .linklist label{display:flex;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid var(--line)}
 .linklist label:first-child{border-top:0}
 .linklist input{width:20px;height:20px;flex:none;accent-color:var(--accent)}
@@ -212,11 +239,11 @@ details summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding-top:6
 .toast{display:flex;align-items:center;justify-content:center;gap:14px}
 .toast .undo{border:0;background:transparent;color:var(--accent-soft);font-weight:700;text-decoration:underline;padding:2px 4px}
 .pv b{font-weight:600;overflow-wrap:anywhere}
-.pv select{border:0;background:transparent;font-size:.78rem;color:var(--muted);max-width:9em}
+.pv select{border:0;background-color:var(--bg);font-size:.78rem;color:var(--muted);max-width:9em}
 
 /* sheet */
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:40;display:flex;align-items:flex-end;justify-content:center}
-.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;max-height:88%;overflow:auto}
+.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;max-height:88%;overflow:auto;overscroll-behavior:contain}
 .field{display:flex;flex-direction:column;gap:4px}
 .field label{font-size:.8rem;color:var(--muted)}
 .field input,.field select,.field textarea{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 10px;min-width:0;width:100%;font-size:16px}
@@ -234,7 +261,7 @@ details summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding-top:6
 .catrow .f{display:flex;flex-direction:column;gap:6px;min-width:0}
 .catrow input[type=text],.catrow select,.catrow textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 8px;width:100%;min-width:0}
 .catrow textarea{font-size:.82rem;min-height:56px}
-@media (prefers-reduced-motion: no-preference){.day,.chk,nav.tabs button{transition:background .15s, box-shadow .15s}}
+@media (prefers-reduced-motion: no-preference){.day,.chk,nav.tabs button{transition:background .15s, box-shadow .15s, filter .1s}button{transition:opacity .1s, filter .1s}}
 @media (max-width:420px){nav.tabs button{font-size:.76rem;padding-inline:2px}.brand{font-size:1.45rem}}
 /* sign-in gate */
 .gate{position:fixed;inset:0;z-index:70;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px 16px}
@@ -244,36 +271,39 @@ details summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding-top:6
 .gate .btn{padding:12px 16px;font-size:1rem}
 /* mic */
 .micbtn{flex:none;width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center}
-.micbtn.on{background:var(--urgent);border-color:var(--urgent);color:#fff;animation:pulse 1.2s ease-in-out infinite}
+.micbtn.on{background:var(--urgent);border-color:var(--urgent);color:var(--on-urgent);animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{50%{transform:scale(1.06)}}
 @media (prefers-reduced-motion: reduce){.micbtn.on{animation:none}}
-.talk{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+.talk{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;overscroll-behavior:contain}
 .talk button{width:150px;height:150px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-size:1.1rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
 .sync.off i{background:var(--urgent)}
 .backup{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 </style>
 </head>
 <body>
+<a class="skip" href="#content">تخطَّ إلى المحتوى</a>
 
 <div class="wrap">
   <div class="masthead">
+  <h1 class="sr-only">دفتر البيت</h1>
   <header class="top">
     <div class="dates" id="dates"></div>
     <div class="row" style="gap:10px;flex-wrap:nowrap"><div class="sync" id="sync"><i></i><span>جارِ الاتصال…</span></div>
     <button class="iconbtn sm themebtn" id="themeBtn" aria-label="تبديل الوضع الداكن والفاتح"></button></div>
   </header>
 
-  <nav class="tabs" role="tablist">
-    <button role="tab" data-tab="home" aria-selected="true">الرئيسية<span class="badge" id="badge-home" hidden>0</span></button>
-    <button role="tab" data-tab="shop" aria-selected="false">المشتريات<span class="badge" id="badge-shop" hidden>0</span></button>
-    <button role="tab" data-tab="tasks" aria-selected="false">المهام<span class="badge" id="badge-tasks" hidden>0</span></button>
-    <button role="tab" data-tab="events" aria-selected="false">المناسبات<span class="badge" id="badge-events" hidden>0</span></button>
-    <button role="tab" data-tab="inbox" aria-selected="false">الوارد<span class="badge" id="badge-inbox" hidden>0</span></button>
-    <button role="tab" data-tab="cats" aria-selected="false">التصنيفات</button>
+  <nav class="tabs" role="tablist" aria-label="أقسام الدفتر">
+    <button role="tab" id="tab-home" data-tab="home" aria-selected="true" aria-controls="view-home" tabindex="0">الرئيسية<span class="badge" id="badge-home" hidden>0</span></button>
+    <button role="tab" id="tab-shop" data-tab="shop" aria-selected="false" aria-controls="view-shop" tabindex="-1">المشتريات<span class="badge" id="badge-shop" hidden>0</span></button>
+    <button role="tab" id="tab-tasks" data-tab="tasks" aria-selected="false" aria-controls="view-tasks" tabindex="-1">المهام<span class="badge" id="badge-tasks" hidden>0</span></button>
+    <button role="tab" id="tab-events" data-tab="events" aria-selected="false" aria-controls="view-events" tabindex="-1">المناسبات<span class="badge" id="badge-events" hidden>0</span></button>
+    <button role="tab" id="tab-inbox" data-tab="inbox" aria-selected="false" aria-controls="view-inbox" tabindex="-1">الوارد<span class="badge" id="badge-inbox" hidden>0</span></button>
+    <button role="tab" id="tab-cats" data-tab="cats" aria-selected="false" aria-controls="view-cats" tabindex="-1">التصنيفات</button>
   </nav>
   </div>
 
-  <section class="view" id="view-home">
+  <main id="content" tabindex="-1">
+  <section class="view" id="view-home" role="tabpanel" aria-labelledby="tab-home">
     <div class="card calcard">
       <div class="cal-head">
         <button class="iconbtn" id="prevM" aria-label="الشهر السابق"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -290,18 +320,19 @@ details summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding-top:6
     </div>
   </section>
 
-  <section class="view" id="view-tasks" hidden></section>
-  <section class="view" id="view-events" hidden></section>
-  <section class="view" id="view-shop" hidden></section>
-  <section class="view" id="view-inbox" hidden></section>
-  <section class="view" id="view-cats" hidden></section>
+  <section class="view" id="view-tasks" role="tabpanel" aria-labelledby="tab-tasks" hidden></section>
+  <section class="view" id="view-events" role="tabpanel" aria-labelledby="tab-events" hidden></section>
+  <section class="view" id="view-shop" role="tabpanel" aria-labelledby="tab-shop" hidden></section>
+  <section class="view" id="view-inbox" role="tabpanel" aria-labelledby="tab-inbox" hidden></section>
+  <section class="view" id="view-cats" role="tabpanel" aria-labelledby="tab-cats" hidden></section>
+  </main>
 </div>
 
 <div class="dock">
   <div class="dock-in">
     <div class="preview" id="preview"></div>
     <div class="entry">
-      <textarea id="entry" rows="1" placeholder="اكتب أو اضغط المايك…"></textarea>
+      <textarea id="entry" name="entry" rows="1" placeholder="اكتب أو اضغط المايك…" aria-label="إضافة عنصر أو مهمة" autocomplete="off" enterkeyhint="send"></textarea>
       <button class="micbtn" id="micBtn" aria-label="إدخال صوتي" hidden><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
       <button class="addbtn" id="addBtn" disabled>أضف</button>
     </div>
@@ -310,14 +341,14 @@ details summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding-top:6
 
 <div id="focusHost" class="focus" hidden></div>
 <div id="sheetHost"></div>
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <div class="gate" id="gate"><div class="box">
   <h1>دفتر البيت</h1>
   <p id="gateMsg">جارِ التحميل…</p>
   <button class="btn" id="gateBtn" hidden></button>
   <button class="btn sec" id="gateOut" hidden>تسجيل الخروج</button>
 </div></div>
-<div class="talk" id="talk" hidden><button id="talkBtn"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>اضغط وتكلّم</button></div>
+<div class="talk" id="talk" role="dialog" aria-modal="true" aria-label="إدخال صوتي" hidden><button id="talkBtn"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>اضغط وتكلّم</button></div>
 <script src="config.js"></script>
 </body>
 </html>
@@ -338,9 +369,27 @@ const fmtShort = new Intl.DateTimeFormat("ar-u-ca-gregory-nu-latn", { day: "nume
 const fmtMonth = new Intl.DateTimeFormat("ar-u-ca-gregory-nu-latn", { month: "long", year: "numeric" });
 let fmtH; try { fmtH = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura-nu-latn", { day: "numeric", month: "long", year: "numeric" }); } catch (e) { fmtH = null; }
 function toast(msg, undo) {
-  const t = $("#toast"); t.innerHTML = `<span>${esc(msg)}</span>`; t.hidden = false;
+  const t = $("#toast"); t.hidden = false; t.innerHTML = `<span>${esc(msg)}</span>`;
   if (undo) { const b = document.createElement("button"); b.className = "undo"; b.textContent = "تراجع"; b.onclick = () => { t.hidden = true; undo(); }; t.appendChild(b); }
   clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, undo ? 5000 : 2200);
+}
+
+/* Arabic counts: 1 عنصر واحد · 2 عنصران · 3–10 عناصر · 11–99 عنصراً · 0/100+ عنصر */
+const PR = (() => { try { return new Intl.PluralRules("ar"); } catch (e) { return null; } })();
+const W_ITEM = ["عنصر", "عنصران", "عناصر", "عنصراً"], W_PIECE = ["صنف", "صنفان", "أصناف", "صنفاً"], W_REC = ["سجل", "سجلان", "سجلات", "سجلاً"];
+function count(n, w) {
+  const f = PR ? PR.select(n) : "other";
+  return f === "one" ? w[0] + " واحد" : f === "two" ? w[1] : f === "few" ? n + " " + w[2] : f === "many" ? n + " " + w[3] : n + " " + w[0];
+}
+/* an inline error under a field, with focus on it */
+function fieldError(sel, msg) {
+  const inp = $(sel); if (!inp) return toast(msg);
+  const f = inp.closest(".field"); let er = f && f.querySelector(".ferr");
+  if (f && !er) { er = document.createElement("span"); er.className = "ferr"; er.id = inp.id + "-err"; er.setAttribute("role", "alert"); f.appendChild(er); }
+  if (er) { er.textContent = msg; inp.setAttribute("aria-describedby", er.id); }
+  inp.setAttribute("aria-invalid", "true");
+  inp.addEventListener("input", () => { inp.removeAttribute("aria-invalid"); inp.removeAttribute("aria-describedby"); if (er) er.remove(); }, { once: true });
+  inp.focus();
 }
 
 /* ===================== Arabic parser (pure) ===================== */
@@ -636,7 +685,7 @@ function itemRow(it, opts = {}) {
   if (opts.showCat) meta.push(`<span class="pill"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</span>`);
   if (it.priority === "urgent") meta.push(`<span class="pill urgent">مهم</span>`);
   const ev = !opts.evView && it.ev && evById(it.ev);
-  if (ev) meta.push(`<span class="evmark" title="${esc(ev.name)}" aria-label="المناسبة: ${esc(ev.name)}">${esc(ev.emoji)}</span>`);
+  if (ev) meta.push(`<span class="evmark" role="img" title="${esc(ev.name)}" aria-label="المناسبة: ${esc(ev.name)}">${esc(ev.emoji)}</span>`);
   const ed = effDate(it);
   if (ed && opts.showDate !== false) { const late = !done && ed < todayStr(); meta.push(`<span${late ? ' style="color:var(--urgent);font-weight:600"' : ""}>${it.pin && usesTrip(it.cat) ? "تاريخ خاص · " : ""}${ed === todayStr() ? "اليوم" : fmtShort.format(parseYmd(ed))}${late ? " · متأخرة" : ""}</span>`); }
   if (it.recur && kindOf(it) === "task") meta.push(`<span>↻ ${recurLabel(it.recur)}</span>`);
@@ -670,7 +719,7 @@ function renderHome() {
     for (const o of list) { const live = !o.proj && !o.it.done; byCat.set(o.it.cat, (byCat.get(o.it.cat) || false) || live); }
     const dk = [...byCat.keys()];
     const dots = dk.slice(0, 5).map(c => `<span class="dot${byCat.get(c) ? "" : " proj"}" style="background:${catById(c).color}"></span>`).join("") + (dk.length > 5 ? `<span class="more">+</span>` : "");
-    html += `<button class="day${d.getMonth() !== mo ? " out" : ""}${k === t ? " today" : ""}${k === state.sel ? " sel" : ""}" data-day="${k}" aria-label="${fmtG.format(d)}، ${list.length} عناصر"><span>${d.getDate()}</span><span class="dots">${dots}</span></button>`;
+    html += `<button class="day${d.getMonth() !== mo ? " out" : ""}${k === t ? " today" : ""}${k === state.sel ? " sel" : ""}" data-day="${k}"${k === t ? ' aria-current="date"' : ""} aria-pressed="${k === state.sel}" aria-label="${fmtG.format(d)}، ${list.length ? count(list.length, W_ITEM) : "لا عناصر"}"><span>${d.getDate()}</span><span class="dots">${dots}</span></button>`;
   }
   $("#calGrid").innerHTML = html;
   $("#legend").innerHTML = state.cats.map(c => `<span><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</span>`).join("");
@@ -705,13 +754,18 @@ const FOCUS_CATS = ["super"];
 const ICON_EXPAND = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const ICON_SHRINK = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 let wakeLock = null;
-async function setFocus(cid) {
-  state.focusCat = cid; renderFocus();
+async function wake(on) {
   try {
-    if (cid && navigator.wakeLock && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => { wakeLock = null; }); }
-    if (!cid && wakeLock) { await wakeLock.release(); wakeLock = null; }
+    if (on && navigator.wakeLock && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => { wakeLock = null; }); }
+    if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
   } catch (e) { wakeLock = null; }
 }
+function setFocus(cid) {
+  if (!cid) { focusOff(); popLayer("focus"); return; }
+  state.focusCat = cid; renderFocus(); pushLayer("focus"); wake(true);
+  const host = $("#focusHost"); host.tabIndex = -1; host.focus({ preventScroll: true });
+}
+function focusOff() { if (!state.focusCat) return; state.focusCat = null; renderFocus(); wake(false); }
 function renderFocus() {
   const host = $("#focusHost"), cid = state.focusCat;
   host.hidden = !cid; document.body.classList.toggle("is-focus", !!cid);
@@ -721,8 +775,14 @@ function renderFocus() {
   host.innerHTML = `<div class="focus-h"><span class="sw" style="background:${c.color}"></span><h2>${esc(c.name)}</h2><span class="gcount">${open ? "باقي " + open : "✓ اكتملت"}</span><span class="spacer"></span><button class="iconbtn" data-act="unfocus" aria-label="العودة للعرض العادي">${ICON_SHRINK}</button></div>
     <div class="list focus-list">${list.length ? list.map(it => itemRow(it, { proj: projOf.get(it), showDate: effDate(it) !== state.sel })).join("") : `<div class="empty">لا أصناف في هذا اليوم.</div>`}</div>`;
 }
-document.addEventListener("visibilitychange", () => { if (state.focusCat && document.visibilityState === "visible" && !wakeLock) setFocus(state.focusCat); });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && state.focusCat) setFocus(null); });
+document.addEventListener("visibilitychange", () => { if (state.focusCat && document.visibilityState === "visible" && !wakeLock) wake(true); });
+/* Esc closes the innermost overlay */
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape" || !$("#gate").hidden) return;
+  if (sheetOpen()) { e.preventDefault(); requestCloseSheet(); }
+  else if (!$("#talk").hidden) closeTalk();
+  else if (state.focusCat) setFocus(null);
+});
 
 function renderTasks() {
   /* the tab itself is the category: open tasks are one flat list, each with its own date */
@@ -772,16 +832,16 @@ function renderEvents() {
 }
 function openEventSheet(id) {
   const ev = id ? evById(id) : null, emo = ev ? ev.emoji : "";
-  $("#sheetHost").innerHTML = `<div class="scrim" data-act="closeSheet"><div class="sheet" role="dialog" aria-label="${ev ? "تعديل المناسبة" : "مناسبة جديدة"}">
+  showSheet(`<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-label="${ev ? "تعديل المناسبة" : "مناسبة جديدة"}">
     <h2>${ev ? "تعديل المناسبة" : "مناسبة جديدة"}</h2>
-    <div class="field"><label for="ev-name">الاسم</label><input id="ev-name" value="${ev ? esc(ev.name) : ""}" placeholder="مثلاً: طلعة الشوي" maxlength="40"></div>
+    <div class="field"><label for="ev-name">الاسم</label><input id="ev-name" name="ev-name" value="${ev ? esc(ev.name) : ""}" placeholder="مثلاً: طلعة الشوي…" maxlength="40" autocomplete="off"></div>
     <div class="field"><label for="ev-emo">الإيموجي</label>
       <div class="emogrid">${EMOJIS.map(e => `<button type="button" data-act="evEmo" data-e="${e}" class="${e === emo ? "on" : ""}">${e}</button>`).join("")}</div>
-      <input id="ev-emo" value="${esc(emo)}" placeholder="أو اكتب أي إيموجي من لوحة المفاتيح" maxlength="16"></div>
+      <input id="ev-emo" name="ev-emo" value="${esc(emo)}" placeholder="أو اكتب أي إيموجي… 🎉" maxlength="16" autocomplete="off" aria-label="إيموجي آخر"></div>
     <div class="row"><span class="spacer"></span><button class="btn sec" data-act="closeSheet">إلغاء</button><button class="btn" data-act="evSave" data-ev="${id || ""}">${ev ? "حفظ" : "إنشاء"}</button></div>
-  </div></div>`;
+  </div></div>`);
   $("#ev-emo").addEventListener("input", () => { const v = $("#ev-emo").value; document.querySelectorAll(".emogrid button").forEach(b => b.classList.toggle("on", b.dataset.e === v)); });
-  if (!ev) $("#ev-name").focus();
+  if (!ev && matchMedia("(pointer: fine)").matches) $("#ev-name").focus();   // phones: don't pop the keyboard over the emoji grid
 }
 function firstGrapheme(v) {
   v = String(v || "").trim(); if (!v) return "";
@@ -790,32 +850,32 @@ function firstGrapheme(v) {
 }
 function openEvDateSheet(id) {
   const it = state.items.find(x => x.id === id); if (!it) return;
-  $("#sheetHost").innerHTML = `<div class="scrim" data-act="closeSheet"><div class="sheet" role="dialog" aria-label="تاريخ ${esc(it.title)}">
+  showSheet(`<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-label="تاريخ ${esc(it.title)}">
     <h2>تاريخ «${esc(it.title)}»</h2>
     <p class="small muted" style="margin:0">يظهر التاريخ في المناسبة وفي ${esc(catById(it.cat).name)}${usesTrip(it.cat) ? "، ولا يتغيّر مع تاريخ قائمة السوبرماركت" : ""}.</p>
     <div class="field"><label for="ed-date">التاريخ</label><input id="ed-date" type="date" value="${todayStr()}"></div>
     <div class="row"><span class="spacer"></span><button class="btn sec" data-act="closeSheet">إلغاء</button><button class="btn" data-act="evDateSave" data-id="${id}">حفظ</button></div>
-  </div></div>`;
+  </div></div>`);
 }
 function openLinkSheet() {
   const ev = evById(state.evOpen); if (!ev) return;
   const cands = state.items.filter(it => !it.done && it.ev !== ev.id && it.cat !== "inbox")
     .sort((a, b) => state.cats.findIndex(c => c.id === a.cat) - state.cats.findIndex(c => c.id === b.cat) || String(a.title).localeCompare(String(b.title), "ar"));
-  $("#sheetHost").innerHTML = `<div class="scrim" data-act="closeSheet"><div class="sheet" role="dialog" aria-label="إضافة عناصر موجودة">
+  showSheet(`<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-label="إضافة عناصر موجودة">
     <h2>إضافة إلى ${esc(ev.emoji)} ${esc(ev.name)}</h2>
     <p class="small muted" style="margin:0">اختر من العناصر المفتوحة. تبقى في تصنيفاتها${state.events.length > 1 ? "، وتنتقل من مناسبتها السابقة إن كانت في مناسبة أخرى" : ""}.</p>
     ${cands.length ? `<div class="linklist">${cands.map(it => { const c = catById(it.cat), o = it.ev && evById(it.ev);
       return `<label><input type="checkbox" value="${it.id}"><span class="dot" style="background:${c.color}"></span><span class="lt">${esc(it.title)} <span class="small muted">· ${esc(c.name)}${o ? " · " + esc(o.emoji) : ""}</span></span></label>`; }).join("")}</div>`
       : `<div class="empty">لا عناصر مفتوحة أخرى.</div>`}
     <div class="row"><span class="spacer"></span><button class="btn sec" data-act="closeSheet">إلغاء</button>${cands.length ? `<button class="btn" data-act="evLinkSave">إضافة</button>` : ""}</div>
-  </div></div>`;
+  </div></div>`);
 }
 
 function renderShop() {
   const shop = state.items.filter(it => kindOf(it) === "shop" && !it.done);   // bought items leave this tab
   const cats = state.cats.filter(c => c.kind === "shop");
   let html = "";
-  if (shop.length) html += `<div class="row"><span class="muted small">${shop.length} عنصر للشراء</span></div>`;
+  if (shop.length) html += `<div class="row"><span class="muted small">${count(shop.length, W_ITEM)} للشراء</span></div>`;
   for (const c of cats) {
     const list = sortItems(shop.filter(it => it.cat === c.id));
     if (!list.length) continue;
@@ -849,9 +909,9 @@ function renderCats() {
   const rows = catDraft.map((c, i) => `<div class="catrow">
       <input type="color" id="cc-${i}" value="${c.color}" data-ci="${i}" data-f="color" aria-label="لون ${esc(c.name)}">
       <div class="f">
-        <input type="text" id="cn-${i}" value="${esc(c.name)}" data-ci="${i}" data-f="name" aria-label="اسم التصنيف">
+        <input type="text" id="cn-${i}" name="cat-name-${i}" value="${esc(c.name)}" data-ci="${i}" data-f="name" aria-label="اسم التصنيف" autocomplete="off">
         <select id="ck-${i}" data-ci="${i}" data-f="kind" aria-label="النوع"><option value="shop"${c.kind === "shop" ? " selected" : ""}>مشتريات</option><option value="task"${c.kind === "task" ? " selected" : ""}>مهام</option></select>
-        <textarea id="cw-${i}" data-ci="${i}" data-f="kw" aria-label="كلمات التعرّف" placeholder="كلمات التعرّف، مفصولة بفواصل">${esc((c.kw || []).join("، "))}</textarea>
+        <textarea id="cw-${i}" data-ci="${i}" data-f="kw" aria-label="كلمات التعرّف" placeholder="مثلاً: حليب، خبز، بيض…" autocomplete="off">${esc((c.kw || []).join("، "))}</textarea>
       </div>
       <button class="iconbtn" data-act="delCat" data-ci="${i}" aria-label="حذف التصنيف" ${catDraft.length <= 1 ? "disabled" : ""}>✕</button>
     </div>`).join("");
@@ -889,9 +949,10 @@ function renderBadges() {
 function render() {
   const t = new Date();
   $("#dates").innerHTML = `<b>${fmtG.format(t)}</b>${fmtH ? " · " + fmtH.format(t) : ""}`;
-  document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === state.tab));
+  document.querySelectorAll("nav.tabs button").forEach(b => { const on = b.dataset.tab === state.tab; b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1; });
+  document.body.classList.toggle("is-home", state.tab === "home");
   for (const v of ["home", "tasks", "shop", "events", "inbox", "cats"]) $("#view-" + v).hidden = v !== state.tab;
-  renderInbox();
+  if (state.tab === "inbox") renderInbox();
   renderBadges();
   if (state.tab === "home") renderHome();
   if (state.tab === "tasks") renderTasks();
@@ -901,7 +962,6 @@ function render() {
   $("#entry").placeholder = curEv() ? "أضف إلى " + evById(curEv()).name + "…" : "اكتب أو اضغط المايك…";
   setSync(state.mode);
   renderPreview();
-  sizeHome();
   renderFocus();
 }
 
@@ -910,19 +970,19 @@ function openSheet(id) {
   const it = state.items.find(x => x.id === id); if (!it) return;
   const ro = state.readOnly;
   const r = it.recur || { n: 1, unit: "none" };
-  $("#sheetHost").innerHTML = `<div class="scrim" data-act="closeSheet"><div class="sheet" role="dialog" aria-label="تعديل">
-    <div class="field"><label for="e-title">النص</label><input id="e-title" value="${esc(it.title)}" ${ro ? "disabled" : ""}></div>
+  showSheet(`<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-label="تعديل">
+    <div class="field"><label for="e-title">النص</label><input id="e-title" name="title" value="${esc(it.title)}" autocomplete="off" ${ro ? "disabled" : ""}></div>
     <div class="two">
       <div class="field"><label for="e-cat">التصنيف</label><select id="e-cat" ${ro ? "disabled" : ""}>${[INBOX, ...state.cats].map(c => `<option value="${c.id}"${c.id === it.cat ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select></div>
       <div class="field"><label for="e-date">التاريخ</label><input id="e-date" type="date" value="${effDate(it) || ""}" ${ro ? "disabled" : ""}></div>
       <div class="field"><label for="e-pri">الأولوية</label><select id="e-pri" ${ro ? "disabled" : ""}><option value="normal">عادي</option><option value="urgent"${it.priority === "urgent" ? " selected" : ""}>مهم</option></select></div>
       ${state.events.length || (it.ev && evById(it.ev)) ? `<div class="field"><label for="e-ev">المناسبة</label><select id="e-ev" ${ro ? "disabled" : ""}><option value="">بدون</option>${state.events.map(e => `<option value="${e.id}"${e.id === it.ev ? " selected" : ""}>${esc(e.emoji)} ${esc(e.name)}</option>`).join("")}</select></div>` : ""}
       <div class="field" id="f-pin"><label class="pinlbl"><input type="checkbox" id="e-pin" ${it.pin ? "checked" : ""} ${ro ? "disabled" : ""}> تاريخ خاص لهذا الصنف</label><span class="small muted" id="pinHint"></span></div>
-      <div class="field" id="f-recur"><label for="e-rn">التكرار</label><div class="row" style="flex-wrap:nowrap"><input id="e-rn" type="number" min="1" max="99" value="${r.n}" style="width:4.2em" ${ro ? "disabled" : ""}>
-        <select id="e-ru" ${ro ? "disabled" : ""}><option value="none">بدون</option><option value="day"${r.unit === "day" ? " selected" : ""}>يوم</option><option value="week"${r.unit === "week" ? " selected" : ""}>أسبوع</option><option value="month"${r.unit === "month" ? " selected" : ""}>شهر</option><option value="year"${r.unit === "year" ? " selected" : ""}>سنة</option></select></div></div>
+      <div class="field" id="f-recur"><label for="e-rn">التكرار</label><div class="row" style="flex-wrap:nowrap"><input id="e-rn" name="recur-n" type="number" inputmode="numeric" min="1" max="99" value="${r.n}" style="width:4.2em" ${ro ? "disabled" : ""}>
+        <select id="e-ru" name="recur-unit" aria-label="وحدة التكرار" ${ro ? "disabled" : ""}><option value="none">بدون</option><option value="day"${r.unit === "day" ? " selected" : ""}>يوم</option><option value="week"${r.unit === "week" ? " selected" : ""}>أسبوع</option><option value="month"${r.unit === "month" ? " selected" : ""}>شهر</option><option value="year"${r.unit === "year" ? " selected" : ""}>سنة</option></select></div></div>
     </div>
     <div class="row" id="delRow"><button class="btn del" data-act="askDel" ${ro ? "disabled" : ""}>حذف</button><span class="spacer"></span><button class="btn sec" data-act="closeSheet">إلغاء</button><button class="btn" data-act="saveSheet" data-id="${id}" ${ro ? "disabled" : ""}>حفظ</button></div>
-  </div></div>`;
+  </div></div>`);
   $("#sheetHost .sheet").dataset.id = id;
   $("#e-cat").addEventListener("change", () => syncSheet(id));
   $("#e-pin").addEventListener("change", () => syncSheet(id));
@@ -942,21 +1002,110 @@ function syncSheet(id) {
     $("#pinHint").textContent = trip1 ? "لن يتغيّر مع تاريخ " + c.name : "";
   }
 }
-function closeSheet() { $("#sheetHost").innerHTML = ""; }
+/* ===================== overlays & the back button =====================
+   Every overlay (edit sheet, full-screen list, voice prompt) and every tab other than home is a history entry,
+   so the phone's back gesture closes the overlay / returns home instead of leaving the app. */
+const H = () => history.state || {};
+const layers = [];   // open overlays, innermost last: "focus" | "sheet" | "talk"
+let popping = false, afterPop = null;
+/* history.back() is asynchronous: anything that touches history waits until our own pending back has landed */
+function whenSettled(fn) { if (popping) { const p = afterPop; afterPop = () => { if (p) p(); fn(); }; } else fn(); }
+function pushLayer(name) {
+  if (layers[layers.length - 1] === name) return;
+  layers.push(name); updateInert();
+  whenSettled(() => history.pushState({ ...H(), layer: layers.length }, ""));
+}
+function popLayer(name, then) {
+  const i = layers.lastIndexOf(name);
+  if (i < 0) { if (then) then(); return; }
+  layers.splice(i, 1); updateInert();
+  whenSettled(() => { if (H().layer) { popping = true; afterPop = then || null; history.back(); } else if (then) then(); });
+}
+function updateInert() {
+  const sheet = layers.includes("sheet"), talk = layers.includes("talk"), focus = layers.includes("focus");
+  $(".wrap").inert = $(".dock").inert = sheet || talk || focus;
+  $("#focusHost").inert = sheet || talk;
+}
+addEventListener("popstate", () => {
+  if (popping) { popping = false; const f = afterPop; afterPop = null; if (f) f(); return; }
+  const depth = H().layer || 0;
+  while (layers.length > depth) {
+    const top = layers[layers.length - 1];
+    if (top === "sheet" && sheetDirty()) { history.pushState({ ...H(), layer: layers.length }, ""); showDiscard(); return; }
+    layers.pop();
+    if (top === "sheet") closeSheetUI(); else if (top === "talk") $("#talk").hidden = true; else focusOff();
+  }
+  updateInert();
+  if (layers.length) return;
+  const t = H().tab || "home";
+  if (t === state.tab) return;
+  if (state.tab === "cats" && catsDirty()) { history.pushState({ tab: "cats" }, "", "#cats"); askLeaveCats(t); return; }
+  goTab(t, 0, true);
+});
+addEventListener("beforeunload", e => { if (catsDirty() || sheetDirty()) { e.preventDefault(); e.returnValue = ""; } });
+
+let sheetOpener = null, sheetSnap = "";
+const sheetOpen = () => !!$("#sheetHost .sheet");
+const sheetVals = () => [...document.querySelectorAll("#sheetHost .sheet :is(input,select,textarea)")].map(x => x.type === "checkbox" ? x.checked : x.value).join("\u0001");
+const sheetDirty = () => sheetOpen() && !state.readOnly && sheetVals() !== sheetSnap;
+function showSheet(html) {
+  if (!sheetOpen()) sheetOpener = document.activeElement;
+  $("#sheetHost").innerHTML = html;
+  const sh = $("#sheetHost .sheet"); sh.setAttribute("aria-modal", "true"); sh.tabIndex = -1;
+  pushLayer("sheet");
+  sh.focus({ preventScroll: true });
+  queueMicrotask(() => { sheetSnap = sheetVals(); });   // after the opener has filled its fields
+}
+function closeSheetUI() {
+  $("#sheetHost").innerHTML = ""; sheetSnap = "";
+  const o = sheetOpener; sheetOpener = null; if (o && o.isConnected) o.focus({ preventScroll: true });
+}
+function closeSheet(then) { closeSheetUI(); popLayer("sheet", then); }
+/* a tap outside, Esc or back: ask first if something was changed */
+function requestCloseSheet() { if (sheetDirty()) showDiscard(); else closeSheet(); }
+function showDiscard() {
+  const sh = $("#sheetHost .sheet"); if (!sh || sh.querySelector(".discard")) return;
+  sh.insertAdjacentHTML("beforeend", `<div class="row discard" role="alert"><span style="flex:1;min-width:10em">لم تُحفظ التعديلات.</span><button class="btn sec" data-act="keepEdit">متابعة التعديل</button><button class="btn del" data-act="discardEdit">تجاهل التعديلات</button></div>`);
+  sh.scrollTop = sh.scrollHeight;
+}
+/* categories tab: unsaved edits survive a stray swipe, tab tap or back */
+function catsDirty() {
+  if (state.tab !== "cats" || !catDraft || state.readOnly) return false;
+  readCatInputs();
+  const n = l => JSON.stringify(l.map(c => [c.id, c.name, c.kind, String(c.color).toLowerCase(), c.kw || []]));
+  return n(catDraft) !== n(state.cats);
+}
+function askLeaveCats(to) {
+  showSheet(`<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-labelledby="lc-h">
+    <h2 id="lc-h">تعديلات التصنيفات لم تُحفظ</h2>
+    <p class="small muted" style="margin:0">احفظها قبل الانتقال، أو تجاهلها.</p>
+    <div class="row"><button class="btn sec" data-act="catsStay">البقاء</button><span class="spacer"></span><button class="btn del" data-act="catsDrop" data-to="${to}">تجاهل</button><button class="btn" data-act="catsSaveGo" data-to="${to}">حفظ ومتابعة</button></div>
+  </div></div>`);
+}
+/* voice prompt overlay */
+function openTalk() { if (!$("#talk").hidden) return; $("#talk").hidden = false; pushLayer("talk"); $("#talkBtn").focus({ preventScroll: true }); }
+function closeTalk() { if ($("#talk").hidden) return; $("#talk").hidden = true; popLayer("talk"); }
 function openTripSheet(cid) {
   const c = catById(cid), n = state.items.filter(x => x.cat === cid && !x.done && !x.pin).length;
-  $("#sheetHost").innerHTML = `<div class="scrim" data-act="closeSheet"><div class="sheet" role="dialog" aria-label="تاريخ ${esc(c.name)}">
+  showSheet(`<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-label="تاريخ ${esc(c.name)}">
     <h2>تاريخ ${esc(c.name)}</h2>
-    <p class="small muted" style="margin:0">ينتقل معه ${n} ${n === 1 ? "صنف" : "أصناف"}. الأصناف ذات التاريخ الخاص لا تتأثر.</p>
+    <p class="small muted" style="margin:0">ينتقل معه ${count(n, W_PIECE)}. الأصناف ذات التاريخ الخاص لا تتأثر.</p>
     <div class="field"><label for="t-date">التاريخ</label><input id="t-date" type="date" value="${state.trips[cid] || state.sel}"></div>
     <div class="row"><span class="spacer"></span><button class="btn sec" data-act="closeSheet">إلغاء</button><button class="btn" data-act="saveTrip" data-cat="${cid}">حفظ</button></div>
-  </div></div>`;
+  </div></div>`);
 }
 
 /* ===================== events ===================== */
 const TABS = ["home", "shop", "tasks", "events", "inbox", "cats"];
-function goTab(t, from) {
-  state.tab = t; if (t !== "cats") catDraft = null; window.scrollTo(0, 0); render();
+function goTab(t, from, fromPop) {
+  if (!fromPop && state.tab === "cats" && t !== "cats" && catsDirty()) { askLeaveCats(t); return; }
+  const prev = state.tab;
+  state.tab = t; if (t !== "cats") catDraft = null; window.scrollTo(0, 0); render(); sizeHome();
+  /* home is the bottom of the stack; any other tab is one entry above it (switching between tabs replaces it) */
+  if (!fromPop && t !== prev) whenSettled(() => {
+    if (t === "home") { if (H().tab) { popping = true; afterPop = null; history.back(); } }
+    else { const url = location.pathname + location.search + "#" + t; if (H().tab) history.replaceState({ tab: t }, "", url); else history.pushState({ tab: t }, "", url); }
+  });
   /* swipe feedback: the new tab slides in from the side the finger came from */
   const v = $("#view-" + t);
   if (from && v.animate && !matchMedia("(prefers-reduced-motion: reduce)").matches)
@@ -991,7 +1140,11 @@ document.addEventListener("click", async e => {
   const id = el.dataset.id, act = el.dataset.act;
   if (act === "toggle") {
     const it = state.items.find(x => x.id === id); if (!it) return;
-    if (it.recur && !it.done) { const next = stepDate(it.date || todayStr(), it.recur); await store.update(id, { date: next, lastDone: Date.now() }); toast("تمّت. الموعد القادم " + fmtShort.format(parseYmd(next))); }
+    if (it.recur && !it.done) {
+      const prevDate = it.date || null, prevLast = it.lastDone || null, next = stepDate(it.date || todayStr(), it.recur);
+      await store.update(id, { date: next, lastDone: Date.now() });
+      toast("تمّت. الموعد القادم " + fmtShort.format(parseYmd(next)), () => store.update(id, { date: prevDate, lastDone: prevLast }));
+    }
     else if (kindOf(it) === "shop" && !it.done) {
       await store.update(id, { done: true, doneAt: Date.now() });
       await recordBought(it); await sweepBought();
@@ -1000,10 +1153,16 @@ document.addEventListener("click", async e => {
   }
   if (act === "edit") openSheet(id);
   if (act === "closeSheet") closeSheet();
+  if (act === "scrim") requestCloseSheet();
+  if (act === "keepEdit") { const d = el.closest(".discard"); if (d) d.remove(); }
+  if (act === "discardEdit") closeSheet();
+  if (act === "catsStay") closeSheet();
+  if (act === "catsDrop") { const to = el.dataset.to; closeSheet(() => { catDraft = null; goTab(to); }); }
+  if (act === "catsSaveGo") { const to = el.dataset.to; closeSheet(async () => { await saveCatsNow(); goTab(to); }); }
   if (act === "askDel") { $("#delRow").innerHTML = `<span style="flex:1">حذف نهائياً؟</span><button class="btn sec" data-act="closeSheet">تراجع</button><button class="btn del" data-act="confirmDel">نعم، احذف</button>`; }
   if (act === "confirmDel") { const sid = $("#sheetHost .sheet").dataset.id; closeSheet(); await store.remove(sid); toast("حُذف"); }
   if (act === "saveSheet") {
-    const title = $("#e-title").value.trim(); if (!title) { toast("اكتب نصاً للعنصر"); return; }
+    const title = $("#e-title").value.trim(); if (!title) { fieldError("#e-title", "اكتب نص العنصر قبل الحفظ."); return; }
     const ru = $("#e-ru").value; const rn = Math.max(1, Math.min(99, parseInt($("#e-rn").value, 10) || 1));
     const date = $("#e-date").value || null, cat = $("#e-cat").value, kind = catById(cat).kind, pri = $("#e-pri").value;
     const evSel = $("#e-ev") ? ($("#e-ev").value || null) : undefined;
@@ -1057,7 +1216,7 @@ document.addEventListener("click", async e => {
   }
   if (act === "evEmo") { $("#ev-emo").value = el.dataset.e; document.querySelectorAll(".emogrid button").forEach(b => b.classList.toggle("on", b === el)); }
   if (act === "evSave") {
-    const name = $("#ev-name").value.trim(); if (!name) { toast("اكتب اسم المناسبة"); return; }
+    const name = $("#ev-name").value.trim(); if (!name) { fieldError("#ev-name", "اكتب اسماً للمناسبة، مثل «طلعة الشوي»."); return; }
     const emoji = firstGrapheme($("#ev-emo").value) || "📌", eid = el.dataset.ev;
     closeSheet();
     if (eid) { await store.saveEvents(state.events.map(e => e.id === eid ? { ...e, name, emoji } : e)); toast("حُفظت المناسبة"); }
@@ -1074,7 +1233,7 @@ document.addEventListener("click", async e => {
   if (act === "evLinkSave") {
     const ids = [...document.querySelectorAll(".linklist input:checked")].map(x => x.value), eid = state.evOpen; closeSheet();
     for (const x of ids) await store.update(x, { ev: eid });
-    if (ids.length) toast("أُضيف " + ids.length + (ids.length === 1 ? " عنصر" : " عناصر") + " إلى المناسبة");
+    if (ids.length) toast("أُضيف " + count(ids.length, W_ITEM) + " إلى المناسبة");
   }
   if (act === "evEnd") {
     const box = $("#evEndBox"), ev = evById(state.evOpen); if (!ev) return;
@@ -1091,22 +1250,24 @@ document.addEventListener("click", async e => {
   }
   if (act === "trip") openTripSheet(el.dataset.cat);
   if (act === "saveTrip") { const v = $("#t-date").value; const cid = el.dataset.cat; closeSheet(); if (v) { await store.setTrip(cid, v); toast(catById(cid).name + ": " + fmtShort.format(parseYmd(v))); } }
-  if (act === "clearBought") {
-    const b = state.items.filter(it => kindOf(it) === "shop" && it.done); const cats = new Set(b.map(it => it.cat));
-    for (const it of b) await store.remove(it.id);
-    for (const cid of cats) if (state.trips[cid] && !tripFor(cid)) await store.setTrip(cid, null);   // nothing left to buy there: clear its date
-    toast("مُسحت " + b.length + " عناصر");
-  }
   if (act === "addCat") { readCatInputs(); catDraft.push({ id: "c" + uid(), name: "تصنيف جديد", kind: "shop", color: "#64748b", kw: [] }); renderCats(); }
   if (act === "delCat") { readCatInputs(); catDraft.splice(+el.dataset.ci, 1); renderCats(); }
-  if (act === "saveCats") {
-    readCatInputs();
-    const list = catDraft.map(c => ({ ...c, name: c.name.trim() || "بدون اسم" }));
-    const removed = state.cats.filter(c => !list.find(x => x.id === c.id)).map(c => c.id);
-    await store.saveCats(list);
-    for (const it of state.items.filter(it => removed.includes(it.cat))) await store.update(it.id, { cat: "inbox" });
-    catDraft = null; toast("حُفظت التصنيفات");
-  }
+  if (act === "saveCats") await saveCatsNow();
+});
+async function saveCatsNow() {
+  readCatInputs();
+  const list = catDraft.map(c => ({ ...c, name: c.name.trim() || "بدون اسم" }));
+  const removed = state.cats.filter(c => !list.find(x => x.id === c.id)).map(c => c.id);
+  catDraft = null;
+  await store.saveCats(list);
+  for (const it of state.items.filter(it => removed.includes(it.cat))) await store.update(it.id, { cat: "inbox" });
+  toast("حُفظت التصنيفات");
+}
+$("nav.tabs").addEventListener("keydown", e => {
+  const i = TABS.indexOf(state.tab); let j = null;
+  if (e.key === "ArrowLeft") j = i + 1; else if (e.key === "ArrowRight") j = i - 1; else if (e.key === "Home") j = 0; else if (e.key === "End") j = TABS.length - 1;
+  if (j === null) return;
+  e.preventDefault(); goTab(TABS[(j + TABS.length) % TABS.length]); $("#tab-" + state.tab).focus();
 });
 function readCatInputs() {
   document.querySelectorAll("#view-cats [data-ci][data-f]").forEach(inp => {
@@ -1190,11 +1351,19 @@ function sizeHome() {
   v.style.height = Math.max(vh - top - dock - 10, 240) + "px";
 }
 window.addEventListener("resize", sizeHome);
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(() => {
+    const r = document.documentElement.style;
+    r.setProperty("--mast-h", $(".masthead").offsetHeight + "px"); r.setProperty("--dock-h", $(".dock").offsetHeight + "px");
+    sizeHome();
+  });
+  ro.observe($(".masthead")); ro.observe($(".dock"));
+}
 if (window.visualViewport) window.visualViewport.addEventListener("resize", sizeHome);
 $("#todayBtn").onclick = () => { const t = new Date(); state.month = new Date(t.getFullYear(), t.getMonth(), 1); state.sel = todayStr(); renderHome(); renderPreview(); };
 
 const entry = $("#entry");
-entry.addEventListener("input", () => { pendingOverride = {}; entry.style.height = "auto"; entry.style.height = Math.min(entry.scrollHeight, 120) + "px"; renderPreview(); sizeHome(); });
+entry.addEventListener("input", () => { pendingOverride = {}; entry.style.height = "auto"; entry.style.height = Math.min(entry.scrollHeight, 120) + "px"; renderPreview(); });
 entry.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitEntry(); } });
 $("#preview").addEventListener("change", e => { const s = e.target.closest("[data-pv]"); if (s) { pendingOverride[+s.dataset.pv] = s.value; renderPreview(); } });
 $("#addBtn").onclick = submitEntry;
@@ -1230,7 +1399,11 @@ async function addParsed(p) {
 const ICON_MOON = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>`;
 const ICON_SUN = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>`;
 const isDark = () => { const a = document.documentElement.getAttribute("data-theme"); return a ? a === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
-function paintThemeBtn() { const b = $("#themeBtn"); const d = isDark(); b.innerHTML = d ? ICON_SUN : ICON_MOON; b.setAttribute("aria-label", d ? "الوضع الفاتح" : "الوضع الداكن"); }
+function paintThemeBtn() {
+  const b = $("#themeBtn"); const d = isDark(); b.innerHTML = d ? ICON_SUN : ICON_MOON; b.setAttribute("aria-label", d ? "الوضع الفاتح" : "الوضع الداكن");
+  const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();   // status bar matches the page
+  if (bg) document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute("content", bg));
+}
 (() => { try { const t = localStorage.getItem("daftar-theme"); if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t); } catch (e) {} })();
 $("#themeBtn").onclick = () => { const next = isDark() ? "light" : "dark"; document.documentElement.setAttribute("data-theme", next); try { localStorage.setItem("daftar-theme", next); } catch (e) {} paintThemeBtn(); };
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paintThemeBtn);
@@ -1238,10 +1411,15 @@ new MutationObserver(paintThemeBtn).observe(document.documentElement, { attribut
 paintThemeBtn();
 
 /* ===================== boot ===================== */
-const setTabsH = () => document.documentElement.style.setProperty("--tabs-h", document.querySelector("nav.tabs").offsetHeight + "px");
-setTabsH(); window.addEventListener("resize", setTabsH);
 document.getElementById("dow").innerHTML = ["أحد","إثنين","ثلاثاء","أربعاء","خميس","جمعة","سبت"].map(d => `<div class="dow">${d}</div>`).join("");
-render();
+/* reopened on a tab (reload, or …/#shop): start there; a stale overlay entry from before the reload is dropped */
+(() => {
+  const s = H(), h = location.hash.slice(1);
+  if (s.layer) history.replaceState(s.tab ? { tab: s.tab } : null, "");
+  if (s.tab && TABS.includes(s.tab)) state.tab = s.tab;
+  else if (h !== "home" && TABS.includes(h)) { history.replaceState(null, "", location.pathname + location.search); state.tab = "home"; goTab(h); }
+})();
+render(); sizeHome();
 /* =====================================================================
    Firebase: sign-in, shared data, AI classification
    Settings live in config.js (window.DAFTAR_CONFIG).
@@ -1402,22 +1580,22 @@ function listen() {
     rec = new SR(); rec.lang = CFG.voiceLang || "ar-SA"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
     rec.onresult = e => { let t = ""; for (const r of e.results) t += r[0].transcript; entry.value = t; renderPreview(); sizeHome(); if (e.results[e.results.length - 1].isFinal) heard = t; };
     rec.onerror = e => {
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") { $("#talk").hidden = false; toast("اسمح للمتصفح باستخدام الميكروفون، أو استخدم مايك الكيبورد"); }
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") { openTalk(); toast("اسمح للمتصفح باستخدام الميكروفون، أو استخدم مايك الكيبورد"); }
       else if (e.error !== "no-speech" && e.error !== "aborted") toast("تعذّر الاستماع. جرّب مايك الكيبورد");
     };
     rec.onend = () => { rec = null; setMic(false); if (heard.trim() && CFG.voiceAutoAdd !== false) submitEntry(); };
     rec.start(); setMic(true); return true;
   } catch (e) { rec = null; setMic(false); return false; }
 }
-micBtn.onclick = () => { $("#talk").hidden = true; listen(); };
-$("#talkBtn").onclick = () => { $("#talk").hidden = true; listen(); };
-$("#talk").addEventListener("click", e => { if (e.target.id === "talk") $("#talk").hidden = true; });
+micBtn.onclick = () => { closeTalk(); listen(); };
+$("#talkBtn").onclick = () => { closeTalk(); listen(); };
+$("#talk").addEventListener("click", e => { if (e.target.id === "talk") closeTalk(); });
 /* the home-screen shortcut opens …/#voice: start listening right away, or show one big button where the browser needs a tap first */
 function startVoiceFromLink() {
   history.replaceState(null, "", location.pathname + location.search);
-  state.tab = "home"; render();
+  if (state.tab !== "home") goTab("home", 0, true);
   if (!SR) { entry.focus(); return; }
-  if (!listen()) $("#talk").hidden = false;
+  if (!listen()) openTalk();
 }
 
 /* ===================== backup / restore / account (categories tab) ===================== */
@@ -1447,7 +1625,8 @@ document.addEventListener("click", async e => {
   if (act === "importPick") $("#importFile").click();
   if (act === "importGo" && importData && db) {
     $("#importConfirm").hidden = true;
-    try { const n = await db.importAll(importData); toast("تم الاستيراد (" + n + " سجل)"); } catch (err) { toast("تعذّر الاستيراد: " + (err && err.code || "")); }
+    try { const n = await db.importAll(importData); toast("تم الاستيراد (" + count(n, W_REC) + ")"); }
+    catch (err) { toast(err && err.code === "permission-denied" ? "ليس لديك صلاحية الاستيراد في هذا الدفتر" : "تعذّر الاستيراد. تحقق من الاتصال ثم أعد المحاولة"); }
     importData = null;
   }
   if (act === "importCancel") { importData = null; $("#importConfirm").hidden = true; }
@@ -1457,10 +1636,11 @@ document.addEventListener("change", async e => {
   try {
     importData = JSON.parse(await e.target.files[0].text());
     const n = (importData.items || []).length, box = $("#importConfirm");
-    box.innerHTML = `<span style="flex:1">استيراد ${n} عنصر مع التصنيفات والتواريخ والسجل؟ العناصر بنفس المعرّف ستُستبدل.</span><button class="btn sec" data-act="importCancel">إلغاء</button><button class="btn" data-act="importGo">استيراد</button>`;
+    box.innerHTML = `<span style="flex:1">استيراد ${count(n, W_ITEM)} مع التصنيفات والتواريخ والسجل؟ العناصر بنفس المعرّف ستُستبدل.</span><button class="btn sec" data-act="importCancel">إلغاء</button><button class="btn" data-act="importGo">استيراد</button>`;
     box.hidden = false;
-  } catch (err) { toast("الملف غير صالح"); }
+  } catch (err) { toast("الملف غير صالح. اختر ملف نسخة احتياطية (‎.json) نزّلته من دفتر البيت"); }
   e.target.value = "";
 });
 
 </script>
+
