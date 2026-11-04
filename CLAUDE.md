@@ -34,6 +34,8 @@ Arabic (RTL) household app: tasks + shopping lists, shared by a family, used mos
 - Shop tab: bought items disappear immediately (no undo toast); collapsible store groups; store date chip shows the date only.
 - One font family (IBM Plex Sans Arabic); light/dark toggle per device; mic button uses the browser Web Speech API (`ar-SA`) and auto-adds on final result.
 - Inputs keep 16px font (prevents iOS zoom).
+- Back gesture: every overlay (edit sheet, full-screen list, voice prompt) and every non-home tab is a history entry (`pushLayer`/`popLayer`, `goTab`), so back closes the overlay or returns home instead of leaving the app. Sheets with unsaved changes, and unsaved category edits, ask before discarding.
+- Accessibility: tabs are a real tablist (arrow keys), sheets are modal dialogs that return focus, checkboxes have ~44px touch targets, Arabic counts use `count(n, W_ITEM)` (plural forms).
 
 ## Working rules
 - Write user-facing text in Arabic (MSA, short).

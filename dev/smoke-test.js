@@ -119,7 +119,8 @@ async function setup(b, opts = {}) {
   await p.screenshot({ path: path.join(__dirname,'out-focus-shop.png') });
   await p.click('#focusHost .item .chk >> nth=0'); await p.waitForTimeout(400);
   console.log('bought leaves shop focus:', await p.evaluate(() => document.querySelectorAll('#focusHost .item').length));
-  await p.click('[data-act="unfocus"]'); await p.waitForTimeout(200);
+  await p.goBack(); await p.waitForTimeout(300);
+  console.log('back closes long-press focus:', await p.evaluate(() => ({ focus: !document.querySelector('#focusHost').hidden, tab: state.tab, url: location.href })));
   console.log('errors1d:', p.errs);
   await ctx.close();
   // 6) events: create, add while open (tagged, still in its store), add a date, link an existing item, untag, end
